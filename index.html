@@ -35,7 +35,8 @@
         <!-- PÁGINA 1: ENTRADA DE DADOS -->
         <div id="page-inputs" class="page">
             <div class="p-6 bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-all hover:shadow-lg">
-                <h2 class="text-2xl font-bold text-blue-700 mb-6 border-b pb-3">
+                <!-- Título da página de entrada (Configuração de Custos), ajustado para mobile na interação anterior -->
+                <h2 class="text-xl sm:text-2xl font-bold text-blue-700 mb-6 border-b pb-3">
                     <span class="inline-block align-middle mr-2">⚙️</span> Configuração de Custos
                 </h2>
                 
@@ -178,14 +179,11 @@
             // A descrição do preço unitário foi removida na etapa anterior
             const unitPriceDisplay = ''; 
             
-            // ATUALIZAÇÃO: Alterando a classe do input de 'text-right' para 'text-left' (canto esquerdo) e ajustando o padding
-            // Ajuste no pr-12 para pr-4 e no mr-4 para mr-1 (para inputs com unidade como R$ e %)
+            // Classes para alinhamento e espaçamento
             const inputAlignmentClass = 'text-left'; 
-            const unitPaddingClass = (key === 'valorHora' || key === 'margemLucro') ? 'pr-12' : 'pr-4'; // Mantém pr-12 para R$ e %
-            const unitMarginClass = (key === 'valorHora' || key === 'margemLucro') ? 'mr-4' : 'mr-1'; // Ajusta a margem para alinhamento
+            const unitPaddingClass = (key === 'valorHora' || key === 'margemLucro') ? 'pr-12' : 'pr-4'; 
+            const unitMarginClass = (key === 'valorHora' || key === 'margemLucro') ? 'mr-4' : 'mr-1'; 
             
-            // O span da unidade deve ser ajustado para a direita para não colidir com o texto do input
-
             return `
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
                     <label for="${inputData.id}" class="text-base font-medium text-gray-700 w-full sm:w-1/2 mb-1 sm:mb-0">
@@ -311,25 +309,25 @@
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
             // --- ESTILOS E LAYOUT ---
-            const padding = Math.max(30, canvasWidth * 0.05); // Padding responsivo
+            const padding = Math.max(20, canvasWidth * 0.04); // Diminuído de 30px para 20px
             const textX = padding;
             const valueX = canvasWidth - padding;
             let currentY = padding;
 
             // Espaçamentos verticais (Ajustados para menor espaço)
-            const lineSpacing = canvasWidth > 450 ? 50 : 45; // Espaço total entre blocos (ex: entre Custo Material e Mão de Obra)
-            const valueLineSpacing = 25; // Espaço entre a label e o valor
-            const smallLineSpacing = 24; // Espaço entre detalhes de materiais
+            const lineSpacing = canvasWidth > 450 ? 45 : 40; // Diminuído de 50/45
+            const valueLineSpacing = 22; // Diminuído de 25
+            const smallLineSpacing = 20; // Diminuído de 24 (para detalhes de materiais)
 
             // Define a fonte base
             ctx.font = 'Inter'; 
 
             // Cabeçalho / Título do Recibo
-            ctx.font = 'bold 24px Inter'; // Reduzido de 28px
+            ctx.font = 'bold 22px Inter'; // Diminuído de 24px para 22px
             ctx.fillStyle = '#1e40af'; // Azul escuro
             ctx.textAlign = 'left';
             ctx.fillText('Orçamento de Serviços de Serralheria', textX, currentY);
-            currentY += 40; // Reduzido de 45
+            currentY += 35; // Diminuído de 40
 
             // Linha de separação
             ctx.strokeStyle = '#9ca3af'; // Cinza
@@ -338,79 +336,77 @@
             ctx.moveTo(padding, currentY);
             ctx.lineTo(canvasWidth - padding, currentY);
             ctx.stroke();
-            currentY += 25; // Reduzido de 30
+            currentY += 20; // Diminuído de 25
 
             // --- SEÇÃO 1: CUSTOS BASE ---
 
             // Título Custos Base
-            ctx.font = 'bold 18px Inter'; // Reduzido de 20px
+            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
             ctx.fillStyle = '#333333';
             ctx.fillText('1. Custos Base (Custo Material + Mão de Obra)', textX, currentY);
-            currentY += 35; // Reduzido de 40
+            currentY += 30; // Diminuído de 35
 
             // --- Linha: Custo de Materiais ---
-            ctx.font = '16px Inter'; // Reduzido de 18px
+            ctx.font = '14px Inter'; // Diminuído de 16px para 14px
             ctx.fillStyle = '#555';
             ctx.fillText('Custo Total de Materiais:', textX + 10, currentY);
-            currentY += valueLineSpacing; // Avança para a linha do valor (25px)
+            currentY += valueLineSpacing; 
 
-            ctx.font = 'bold 18px Inter'; // Reduzido de 20px
+            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
             ctx.fillStyle = '#000';
             ctx.fillText(formatCurrency(state.results.custoMateriais), textX + 20, currentY);
-            currentY += lineSpacing; // Espaço para o próximo bloco
+            currentY += lineSpacing; 
 
             // --- Linha: Custo de Mão de Obra ---
-            ctx.font = '16px Inter'; // Reduzido de 18px
+            ctx.font = '14px Inter'; // Diminuído de 16px para 14px
             ctx.fillStyle = '#555';
             ctx.fillText('Custo Total da Mão de Obra:', textX + 10, currentY);
-            currentY += valueLineSpacing; // Avança para a linha do valor (25px)
+            currentY += valueLineSpacing; 
 
-            ctx.font = 'bold 18px Inter'; // Reduzido de 20px
+            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
             ctx.fillStyle = '#000';
             ctx.fillText(formatCurrency(state.results.custoMaoObra), textX + 20, currentY);
-            currentY += lineSpacing; // Espaço para o próximo bloco
+            currentY += lineSpacing; 
 
 
             // --- Linha Custo Total (Soma) ---
             ctx.strokeStyle = '#000';
             ctx.beginPath();
-            // A linha permanece na mesma posição relativa
             ctx.moveTo(textX, currentY - lineSpacing + valueLineSpacing/2);
             ctx.lineTo(valueX, currentY - lineSpacing + valueLineSpacing/2);
             ctx.stroke();
 
-            ctx.font = 'bold 20px Inter'; // Reduzido de 22px
+            ctx.font = 'bold 18px Inter'; // Diminuído de 20px para 18px
             ctx.fillStyle = '#1e40af';
             ctx.fillText('CUSTO TOTAL DO SERVIÇO (C):', textX, currentY);
-            currentY += valueLineSpacing + 3; // Ajuste fino (25+3)
+            currentY += valueLineSpacing + 3; 
 
-            ctx.font = 'bold 22px Inter'; // Reduzido de 24px
+            ctx.font = 'bold 20px Inter'; // Diminuído de 22px para 20px
             ctx.fillStyle = '#1e40af';
             ctx.fillText(formatCurrency(state.results.custoTotal), textX + 20, currentY);
-            currentY += lineSpacing; // Espaço para o próximo título
+            currentY += lineSpacing; 
 
 
             // --- SEÇÃO 2: MARGEM / LUCRO ---
             
             // Título Margem
-            ctx.font = 'bold 18px Inter'; // Reduzido de 20px
+            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
             ctx.fillText('2. Margem de Lucro', textX, currentY);
-            currentY += 35; // Reduzido de 40
+            currentY += 30; // Diminuído de 35
 
             // --- Linha: Margem Aplicada ---
-            ctx.font = '16px Inter'; // Reduzido de 18px
-            ctx.fillStyle = '#ca8a04'; // Amarelo escuro (Amber)
+            ctx.font = '14px Inter'; // Diminuído de 16px para 14px
+            ctx.fillStyle = '#ca8a04'; 
             
-            // Formatação da margem em percentual
             const margemValue = state.inputs.margemLucro.value;
             const margemDisplay = (margemValue % 1 === 0) ? margemValue.toFixed(0) : margemValue.toFixed(2);
                             
             ctx.fillText(`Margem de Lucro Aplicada (${margemDisplay}% de C):`, textX + 10, currentY);
-            currentY += valueLineSpacing; // Avança para a linha do valor (25px)
+            currentY += valueLineSpacing; 
             
-            ctx.font = 'bold 18px Inter'; // Reduzido de 20px
+            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
             ctx.fillStyle = '#ca8a04';
             ctx.fillText(formatCurrency(state.results.valorMargem), textX + 20, currentY);
             currentY += lineSpacing * 1.5;
@@ -430,12 +426,12 @@
             ctx.stroke();
 
             // Preço Final
-            ctx.font = 'bold 20px Inter'; // Reduzido de 24px
+            ctx.font = 'bold 18px Inter'; // Diminuído de 20px para 18px
             ctx.fillStyle = '#059669'; // Verde mais escuro para contraste
             ctx.fillText('PREÇO FINAL SUGERIDO:', textX, currentY);
-            currentY += valueLineSpacing + 5; // Avança para a linha do valor (25+5)
+            currentY += valueLineSpacing + 5; 
 
-            ctx.font = 'bold 30px Inter'; // Reduzido de 36px
+            ctx.font = 'bold 28px Inter'; // Diminuído de 30px para 28px (Mantendo o destaque)
             ctx.fillStyle = '#059669';
             ctx.fillText(formatCurrency(state.results.precoFinal), textX + 20, currentY);
 
@@ -448,13 +444,13 @@
             
             // --- SEÇÃO 3: DETALHES DE MATERIAIS ---
             currentY += 10;
-            ctx.font = 'bold 14px Inter'; // Reduzido de 16px
+            ctx.font = 'bold 13px Inter'; // Diminuído de 14px para 13px
             ctx.fillStyle = '#4b5563'; // Cinza escuro
             ctx.textAlign = 'left';
             ctx.fillText('3. Detalhes do Cálculo de Materiais:', textX, currentY);
-            currentY += 30; // Reduzido de 35
+            currentY += 25; // Diminuído de 30
 
-            ctx.font = '13px Inter'; // Reduzido de 14px
+            ctx.font = '12px Inter'; // Diminuído de 13px para 12px
             // Recalcula custos detalhados para exibição
             const materialCosts = calculateMaterialCost();
             
@@ -483,17 +479,17 @@
                     ctx.textAlign = 'left';
                     // Renderiza apenas o nome do material (sem Qtd.) no resumo
                     ctx.fillText(`${input.label}:`, textX + 15, materialDetailY);
-                    materialDetailY += smallLineSpacing - 5; // smallLineSpacing é 24
+                    materialDetailY += smallLineSpacing - 5; 
 
-                    ctx.font = 'italic 11px Inter'; // Reduzido de 12px
+                    ctx.font = 'italic 10px Inter'; // Diminuído de 11px para 10px
                     ctx.fillText(detailText, textX + 25, materialDetailY);
 
-                    ctx.font = 'bold 13px Inter'; // Reduzido de 14px
+                    ctx.font = 'bold 12px Inter'; // Diminuído de 13px para 12px
                     ctx.textAlign = 'right';
                     ctx.fillText(totalText, valueX, materialDetailY);
 
-                    materialDetailY += smallLineSpacing + 5; // smallLineSpacing é 24
-                    ctx.font = '13px Inter'; // Reseta a fonte para a label
+                    materialDetailY += smallLineSpacing + 5; 
+                    ctx.font = '12px Inter'; // Reseta a fonte para a label
                 }
             });
             currentY = materialDetailY + 10;
