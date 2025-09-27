@@ -29,22 +29,22 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-        /* --- Input Auxiliar Corrigido (Permite foco dinamicamente) --- */
+        /* --- Input Auxiliar Otimizado para Foco (invisível por padrão) --- */
         #auxiliaryInput {
             position: fixed; 
             top: 0; 
             left: 0;
             width: 1px;
             height: 1px;
-            opacity: 0;
+            opacity: 0; /* Opacidade mínima */
             padding: 0;
             border: none;
-            /* Z-index baixo por padrão para que o canvas seja clicável */
             z-index: -10; 
-            /* Estilo temporário que será controlado pelo JS */
             box-sizing: border-box;
             background-color: transparent;
             color: transparent;
+            /* Garante que o input não seja afetado por transformações */
+            transform: none; 
         }
 
         /* --- ADIÇÃO PARA RESPONSIVIDADE --- */
@@ -66,7 +66,7 @@
     <h2>Simulador de Custos para Serralheria</h2>
     <canvas id="simulatorCanvas" width="600" height="750"></canvas>
 
-    <!-- Input invisível CORRIGIDO: Agora ele se move para o local do clique para forçar o teclado -->
+    <!-- Input invisível CORRIGIDO: Move-se para o local do clique para forçar o teclado -->
     <input type="text" id="auxiliaryInput" inputmode="decimal"> 
 
     <script>
@@ -160,12 +160,12 @@
 
             // --- ESTILOS GLOBAIS ---
             const padding = 30;
-            const inputHeight = 35;
-            const lineSpacing = 55;
+            const inputHeight = 40; 
+            const lineSpacing = 60; 
             let currentY = padding + 20;
 
-            // ... (o desenho dos títulos e separadores é o mesmo) ...
-            ctx.font = 'bold 20px Arial';
+            // --- TÍTULO DE ENTRADA ---
+            ctx.font = 'bold 22px Arial'; 
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
             ctx.fillText('Entrada de Dados', padding, currentY);
@@ -173,13 +173,13 @@
 
             // --- DESENHA INPUTS ---
             state.layout = {}; 
-            ctx.font = '16px Arial';
+            ctx.font = '18px Arial'; 
             Object.keys(state.inputs).forEach(key => {
                 const input = state.inputs[key];
                 
                 // Desenha o label
                 ctx.fillStyle = '#555';
-                ctx.fillText(input.label, padding, currentY + (inputHeight / 2) + 5);
+                ctx.fillText(input.label, padding, currentY + (inputHeight / 2) + 6);
 
                 // Define a caixa do input
                 const inputBox = {
@@ -199,7 +199,7 @@
                 ctx.fillStyle = '#000';
                 ctx.textAlign = 'left';
                 const displayValue = input.value || (state.activeInput === key ? '' : '0'); 
-                ctx.fillText(displayValue, inputBox.x + 10, currentY + (inputHeight / 2) + 5);
+                ctx.fillText(displayValue, inputBox.x + 10, currentY + (inputHeight / 2) + 6);
 
                 // Desenha o cursor se o campo estiver ativo (somente para desktop, visual)
                 if (state.activeInput === key && !('ontouchstart' in window)) {
@@ -221,7 +221,8 @@
             ctx.stroke();
             currentY += padding + 10;
             
-            ctx.font = 'bold 20px Arial';
+            // --- TÍTULO DE RESULTADO ---
+            ctx.font = 'bold 22px Arial'; 
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
             ctx.fillText('Resultado do Orçamento', padding, currentY);
@@ -238,19 +239,19 @@
             resultsLayout.forEach(item => {
                 ctx.textAlign = 'left';
                 ctx.fillStyle = '#555';
-                ctx.font = item.bold ? 'bold 16px Arial' : '16px Arial';
+                ctx.font = item.bold ? 'bold 18px Arial' : '18px Arial'; 
                 ctx.fillText(item.label, padding, currentY);
 
                 ctx.textAlign = 'right';
                 if (item.final) {
-                    ctx.font = 'bold 22px Arial';
+                    ctx.font = 'bold 28px Arial'; 
                     ctx.fillStyle = '#28a745'; 
                 } else if (item.bold) {
                     ctx.fillStyle = '#333';
                 }
                 ctx.fillText(item.value, 600 - padding, currentY); // Usa largura fixa interna 600
 
-                currentY += 40;
+                currentY += 45; 
             });
         }
 
@@ -262,30 +263,32 @@
             // 1. Sincroniza o valor do estado para o input real
             auxiliaryInput.value = state.inputs[key].value;
             
-            // 2. Torna o input auxiliar temporariamente visível e posicionado para forçar o foco/teclado
-            auxiliaryInput.style.opacity = '0.01'; // Quase invisível, mas o suficiente para receber o foco
+            // 2. Posiciona o input auxiliar
+            auxiliaryInput.style.opacity = '0.01'; 
             auxiliaryInput.style.left = `${targetRect.left}px`;
             auxiliaryInput.style.top = `${targetRect.top}px`;
             auxiliaryInput.style.width = `${targetRect.width}px`;
             auxiliaryInput.style.height = `${targetRect.height}px`;
-            auxiliaryInput.style.zIndex = '9999'; // Garante que esteja acima de tudo
+            auxiliaryInput.style.zIndex = '9999'; 
 
-            // 3. Tenta focar no input real (CRUCIAL PARA CELULAR)
-            auxiliaryInput.focus();
+            // 3. Usa setTimeout para forçar o foco após a posição ser processada (CORREÇÃO CHAVE)
+            setTimeout(() => {
+                auxiliaryInput.focus();
+            }, 50); 
         }
 
         function deactivateAuxiliaryInput() {
-            auxiliaryInput.blur();
             // Volta o input para o estado invisível e fora da área de interação
             auxiliaryInput.style.opacity = '0';
             auxiliaryInput.style.left = '0px';
             auxiliaryInput.style.top = '0px';
             auxiliaryInput.style.width = '1px';
             auxiliaryInput.style.height = '1px';
-            auxiliaryInput.style.zIndex = '-10'; // Volta para baixo
+            auxiliaryInput.style.zIndex = '-10'; 
 
             state.activeInput = null;
             draw();
+            auxiliaryInput.blur();
         }
 
         // --- EVENT LISTENERS (CLIQUE/TOQUE) ---
@@ -302,6 +305,10 @@
             Object.keys(state.layout).forEach(key => {
                 const box = state.layout[key];
                 if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
+                    
+                    // Se o usuário clicar no campo ativo, não precisa fazer nada (o teclado já está aberto)
+                    if (state.activeInput === key) return;
+
                     state.activeInput = key;
                     clickedOnInput = true;
                     
@@ -329,8 +336,7 @@
                 deactivateAuxiliaryInput(); // Fecha o teclado se clicar fora
             }
 
-            // O draw() é chamado em activate/deactivate/click, mas mantido aqui por segurança
-            if (!clickedOnInput) {
+            if (!clickedOnInput && state.activeInput) {
                 draw();
             }
         });
@@ -350,7 +356,9 @@
             draw();
         });
         
-        // Desfoca o input auxiliar quando o usuário pressiona "Enter" no teclado virtual
+        // Desfoca o input auxiliar quando o usuário pressiona "Enter" ou sai do campo
+        // Usamos 'change' ou 'blur' para o foco sair.
+        auxiliaryInput.addEventListener('blur', deactivateAuxiliaryInput);
         auxiliaryInput.addEventListener('change', deactivateAuxiliaryInput);
 
         // --- EVENT LISTENER (TECLADO FÍSICO/DESKTOP) ---
@@ -360,11 +368,11 @@
             const key = event.key;
             
             if (key === 'Enter') {
+                 // Força o desfoco para fechar o teclado virtual
                  deactivateAuxiliaryInput(); 
                  return; 
             }
 
-            // Redundância para teclado físico:
             calculateCosts();
         });
 
