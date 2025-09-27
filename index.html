@@ -1,25 +1,97 @@
-<style>
-        /* ... outros estilos ... */
+// --- LÓGICA DE RENDERIZAÇÃO (DESENHO) ---
+    // ... (Mantenha o resto da função draw() intacto)
 
-        canvas {
-            /* Mantém a lógica original do canvas */
-            background-color: #ffffff;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    // --- EVENT LISTENERS (NOVOS) ---
+
+    const auxiliaryInput = document.getElementById('auxiliaryInput'); // Novo elemento
+
+    function activateAuxiliaryInput(key) {
+        if (!key) return;
+
+        // 1. Sincroniza o valor do estado para o input real
+        auxiliaryInput.value = state.inputs[key].value;
+        auxiliaryInput.style.pointerEvents = 'auto'; // Reativa o input
+        
+        // 2. Tenta focar no input real para abrir o teclado virtual
+        setTimeout(() => {
+            auxiliaryInput.focus();
+            // Move o input para fora da tela para que o usuário não o veja, mas o teclado permaneça aberto.
+            auxiliaryInput.style.position = 'absolute';
+            auxiliaryInput.style.top = '-9999px';
+        }, 10);
+    }
+
+    function deactivateAuxiliaryInput() {
+        auxiliaryInput.blur();
+        auxiliaryInput.style.pointerEvents = 'none'; // Desativa o input
+        state.activeInput = null;
+        draw();
+    }
+
+    canvas.addEventListener('click', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        let clickedOnInput = false;
+        Object.keys(state.layout).forEach(key => {
+            const box = state.layout[key];
+            if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
+                state.activeInput = key;
+                clickedOnInput = true;
+                activateAuxiliaryInput(key); // Ativa o input auxiliar
+            }
+        });
+
+        if (!clickedOnInput) {
+            deactivateAuxiliaryInput(); // Desativa se clicar fora
         }
 
-        /* --- ADIÇÃO PARA RESPONSIVIDADE --- */
-        @media (max-width: 700px) {
-            /* Limita a largura máxima do body para evitar que o canvas fique muito grande */
-            body {
-                width: 100%;
-                max-width: 600px; /* Limita o tamanho geral para mobile */
-            }
-            #simulatorCanvas {
-                width: 100%; /* Ocupa 100% da largura do container */
-                height: auto; /* A altura é ajustada automaticamente para manter a proporção */
-            }
+        draw(); // Redesenha para mostrar a seleção
+    });
+
+    // O input auxiliar captura todas as mudanças de valor
+    auxiliaryInput.addEventListener('input', () => {
+        if (!state.activeInput) return;
+
+        let value = auxiliaryInput.value;
+        
+        // Garante que só números e um ponto decimal sejam inseridos
+        value = value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+        
+        state.inputs[state.activeInput].value = value;
+
+        calculateCosts();
+        draw();
+    });
+    
+    // Adiciona um listener para "desfocar" quando o usuário pressionar Enter (mobile)
+    auxiliaryInput.addEventListener('change', deactivateAuxiliaryInput);
+    
+    // Mantém o listener de teclado para desktop
+    window.addEventListener('keydown', (event) => {
+        if (!state.activeInput || event.key === 'Tab' || event.key === 'Enter') return;
+        
+        // Se estiver ativo, cancela o evento para não aparecer no input auxiliar.
+        // O valor já está sendo capturado pelo 'input' listener.
+        event.preventDefault();
+
+        const key = event.key;
+        const input = state.inputs[state.activeInput];
+        
+        if (key === 'Backspace') {
+            input.value = input.value.slice(0, -1);
+            auxiliaryInput.value = input.value; // Sincroniza
+        } else if (!isNaN(key) || (key === '.' && !input.value.includes('.'))) {
+            input.value += key;
+            auxiliaryInput.value = input.value; // Sincroniza
         }
-        /* ---------------------------------- */
-    </style>
+
+        calculateCosts();
+        draw();
+    });
+
+
+    // --- INICIALIZAÇÃO ---
+    calculateCosts();
+    draw();
