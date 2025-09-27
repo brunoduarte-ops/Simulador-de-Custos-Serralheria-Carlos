@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Custos para Serralheria</title>
+    <title>Simulador de Custos Serralheria</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -14,84 +14,36 @@
             flex-direction: column;
             margin: 0;
             padding: 20px;
-            width: 100%; 
-            box-sizing: border-box;
         }
         h2 {
             color: #333;
-            text-align: center;
         }
         canvas {
             background-color: #ffffff;
             border: 1px solid #ccc;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            touch-action: manipulation; /* Importante para melhorar a resposta ao toque */
-        }
-
-        /* O input auxiliar foi removido, pois agora usamos botões no Canvas */
-        
-        /* --- ADIÇÃO PARA RESPONSIVIDADE --- */
-        @media (max-width: 700px) {
-            body {
-                padding: 10px;
-            }
-            #simulatorCanvas {
-                width: 100%; 
-                max-width: 600px; 
-                height: auto; 
-            }
         }
     </style>
 </head>
 <body>
 
-    <h2>Simulador de Custos para Serralheria</h2>
+    <h2>Simulador de Custos para Serralheria (Canvas)</h2>
     <canvas id="simulatorCanvas" width="600" height="750"></canvas>
-
-    <!-- O input auxiliar HTML foi removido -->
 
     <script>
         const canvas = document.getElementById('simulatorCanvas');
         const ctx = canvas.getContext('2d');
 
-        // --- INÍCIO DA ESCALA E REDIMENSIONAMENTO ---
-        // Garante que o desenho interno do canvas se ajuste se a janela for redimensionada (mobile)
-        window.addEventListener('load', () => {
-            const resizeCanvas = () => {
-                const originalWidth = 600;
-                const originalHeight = 750;
-
-                const rect = canvas.getBoundingClientRect();
-                const currentWidth = rect.width;
-                
-                const scaleFactor = currentWidth / originalWidth;
-                
-                canvas.width = originalWidth;
-                canvas.height = originalHeight;
-
-                ctx.setTransform(scaleFactor, 0, 0, scaleFactor, 0, 0);
-
-                calculateCosts();
-                draw();
-            };
-
-            window.addEventListener('resize', resizeCanvas);
-            resizeCanvas(); 
-        });
-        // --- FIM DA ESCALA E REDIMENSIONAMENTO ---
-
-
-        // --- ESTADO DA APLICAÇÃO (Valores agora são tratados como números) ---
+        // --- ESTADO DA APLICAÇÃO ---
         const state = {
             inputs: {
-                // Usamos números no estado para facilitar a lógica de incremento/decremento
-                qtdBarras: { value: 5, label: 'Qtd. Barras de Ferro (6m)', unitPrice: 70, step: 1 },
-                qtdTinta: { value: 1, label: 'Qtd. Latas de Tinta (3,6L)', unitPrice: 75, step: 0.1 },
-                qtdEletrodos: { value: 2, label: 'Qtd. Pacotes de Eletrodo', unitPrice: 39, step: 1 },
-                horasTrabalho: { value: 8, label: 'Horas de Trabalho', step: 0.5 },
-                valorHora: { value: 55, label: 'Valor da Hora (R$)', step: 5 },
-                margemLucro: { value: 30, label: 'Margem de Lucro (%)', step: 1 }
+                qtdBarras: { value: '5', label: 'Qtd. Barras de Ferro (6m)', unitPrice: 70 },
+                qtdTinta: { value: '1', label: 'Qtd. Latas de Tinta (3,6L)', unitPrice: 75 },
+                qtdEletrodos: { value: '2', label: 'Qtd. Pacotes de Eletrodo', unitPrice: 39 },
+                horasTrabalho: { value: '8', label: 'Horas de Trabalho' },
+                valorHora: { value: '55', label: 'Valor da Hora (R$)' },
+                margemLucro: { value: '30', label: 'Margem de Lucro (%)' }
             },
             results: {
                 custoMateriais: 0,
@@ -100,30 +52,18 @@
                 valorMargem: 0,
                 precoFinal: 0
             },
-            layout: {} // Armazena as coordenadas dos botões + e -
+            activeInput: null, // Guarda a chave do input ativo (ex: 'qtdBarras')
+            layout: {} // Posições dos elementos serão armazenadas aqui
         };
 
         // --- FUNÇÕES AUXILIARES ---
         const formatCurrency = (value) => {
             return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         };
-        
-        // Formata o número de entrada para exibição (removendo zeros desnecessários)
-        const formatValue = (value) => {
-            return Number(value).toFixed(getDecimalPlaces(value));
-        }
-
-        // Determina o número de casas decimais para manter a precisão
-        const getDecimalPlaces = (value) => {
-            const valueStr = String(value);
-            const match = valueStr.match(/(?:\.(\d+))$/);
-            return match ? match[1].length : 0;
-        }
 
         // --- LÓGICA DE CÁLCULO ---
         function calculateCosts() {
-            // Pegamos o valor direto do state (número)
-            const getNum = (key) => state.inputs[key].value || 0; 
+            const getNum = (key) => parseFloat(state.inputs[key].value) || 0;
 
             const custoBarras = getNum('qtdBarras') * state.inputs.qtdBarras.unitPrice;
             const custoTinta = getNum('qtdTinta') * state.inputs.qtdTinta.unitPrice;
@@ -139,197 +79,146 @@
             state.results = { custoMateriais, custoMaoObra, custoTotal, valorMargem, precoFinal };
         }
 
-        // --- LÓGICA DE MUDANÇA DE VALOR (STEPPER) ---
-        function handleValueChange(key, direction) {
-            const input = state.inputs[key];
-            const step = input.step;
-            let newValue = input.value;
-
-            // Incrementa ou decrementa, garantindo a precisão do ponto flutuante
-            if (direction === '+') {
-                newValue = newValue + step;
-            } else if (direction === '-') {
-                newValue = newValue - step;
-            }
-
-            // Garante que o valor não seja negativo
-            if (newValue < 0) {
-                newValue = 0;
-            }
-
-            // Corrige o problema de arredondamento de ponto flutuante (ex: 0.1 + 0.2 = 0.30000000000000004)
-            newValue = parseFloat(newValue.toFixed(getDecimalPlaces(step) + 1));
-            
-            state.inputs[key].value = newValue;
-
-            calculateCosts();
-            draw();
-        }
-
         // --- LÓGICA DE RENDERIZAÇÃO (DESENHO) ---
         function draw() {
-            ctx.clearRect(0, 0, 600, 750);
-            ctx.setTransform(ctx.getTransform());
+            // Limpa o canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // --- ESTILOS GLOBAIS ---
             const padding = 30;
-            const controlHeight = 40; 
-            const controlWidth = 100; 
-            const buttonSize = controlHeight;
-            const lineSpacing = 60; 
+            const inputHeight = 35;
+            const lineSpacing = 55;
             let currentY = padding + 20;
 
-            // --- TÍTULO DE ENTRADA ---
-            ctx.font = 'bold 22px Arial'; 
+            // --- TÍTULO SEÇÃO DE ENTRADA ---
+            ctx.font = 'bold 20px Arial';
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
             ctx.fillText('Entrada de Dados', padding, currentY);
             currentY += lineSpacing;
 
-            // --- DESENHA STEPPERS (BOTÕES DE CONTROLE) ---
-            state.layout = {}; 
-            ctx.font = '18px Arial'; 
+            // --- DESENHA INPUTS ---
+            state.layout = {}; // Reseta o layout para redesenhar
+            ctx.font = '16px Arial';
             Object.keys(state.inputs).forEach(key => {
                 const input = state.inputs[key];
                 
                 // Desenha o label
                 ctx.fillStyle = '#555';
-                ctx.fillText(input.label, padding, currentY + (controlHeight / 2) + 6);
+                ctx.fillText(input.label, padding, currentY + (inputHeight / 2) + 5);
 
-                // Área do Stepper (Botões e Valor)
-                const stepperX = 600 - padding - controlWidth; 
-                const stepperY = currentY;
-
-                // 1. Botão Menos (-)
-                const btnMinusBox = {
-                    x: stepperX,
-                    y: stepperY,
-                    width: buttonSize,
-                    height: buttonSize,
-                    action: 'minus'
+                // Define a caixa do input
+                const inputBox = {
+                    x: canvas.width / 2,
+                    y: currentY,
+                    width: canvas.width / 2 - padding,
+                    height: inputHeight
                 };
-                state.layout[`${key}-minus`] = btnMinusBox; 
-                
-                // Desenha o Botão Menos
-                ctx.fillStyle = '#f0f0f0';
-                ctx.fillRect(btnMinusBox.x, btnMinusBox.y, btnMinusBox.width, btnMinusBox.height);
-                ctx.strokeStyle = '#ccc';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(btnMinusBox.x, btnMinusBox.y, btnMinusBox.width, btnMinusBox.height);
-                ctx.fillStyle = '#333';
-                ctx.textAlign = 'center';
-                ctx.font = 'bold 24px Arial';
-                ctx.fillText('-', btnMinusBox.x + buttonSize / 2, btnMinusBox.y + buttonSize / 2 + 8);
-                
-                // 2. Campo de Valor
-                const valueBoxX = stepperX + buttonSize;
-                const valueBoxWidth = controlWidth - (2 * buttonSize);
+                state.layout[key] = inputBox; // Armazena a posição
 
-                ctx.fillStyle = '#eee';
-                ctx.fillRect(valueBoxX, stepperY, valueBoxWidth, controlHeight);
-                ctx.strokeStyle = '#ccc';
-                ctx.strokeRect(valueBoxX, stepperY, valueBoxWidth, controlHeight);
+                // Desenha a borda do input
+                ctx.strokeStyle = (state.activeInput === key) ? '#007BFF' : '#ccc'; // Borda azul se ativo
+                ctx.lineWidth = (state.activeInput === key) ? 2 : 1;
+                ctx.strokeRect(inputBox.x, inputBox.y, inputBox.width, inputBox.height);
 
+                // Desenha o valor dentro do input
                 ctx.fillStyle = '#000';
-                ctx.textAlign = 'center';
-                ctx.font = '18px Arial';
-                // Exibe o valor formatado
-                ctx.fillText(formatValue(input.value), valueBoxX + valueBoxWidth / 2, stepperY + controlHeight / 2 + 6);
+                ctx.textAlign = 'left';
+                ctx.fillText(input.value || '0', inputBox.x + 10, currentY + (inputHeight / 2) + 5);
 
-                // 3. Botão Mais (+)
-                const btnPlusBox = {
-                    x: stepperX + controlWidth - buttonSize,
-                    y: stepperY,
-                    width: buttonSize,
-                    height: buttonSize,
-                    action: 'plus'
-                };
-                state.layout[`${key}-plus`] = btnPlusBox; 
-
-                // Desenha o Botão Mais
-                ctx.fillStyle = '#f0f0f0';
-                ctx.fillRect(btnPlusBox.x, btnPlusBox.y, btnPlusBox.width, btnPlusBox.height);
-                ctx.strokeStyle = '#ccc';
-                ctx.strokeRect(btnPlusBox.x, btnPlusBox.y, btnPlusBox.width, btnPlusBox.height);
-                ctx.fillStyle = '#333';
-                ctx.textAlign = 'center';
-                ctx.font = 'bold 24px Arial';
-                ctx.fillText('+', btnPlusBox.x + buttonSize / 2, btnPlusBox.y + buttonSize / 2 + 8);
+                // Desenha o cursor se o campo estiver ativo
+                if (state.activeInput === key) {
+                    const textWidth = ctx.measureText(input.value).width;
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(inputBox.x + 10 + textWidth + 2, inputBox.y + 8, 2, inputBox.height - 16);
+                }
 
                 currentY += lineSpacing;
             });
             
-            // --- SEPARADOR e RESULTADOS ---
+            // --- SEPARADOR ---
             currentY += 20;
             ctx.beginPath();
             ctx.moveTo(padding, currentY);
-            ctx.lineTo(600 - padding, currentY);
+            ctx.lineTo(canvas.width - padding, currentY);
             ctx.strokeStyle = '#eee';
             ctx.lineWidth = 2;
             ctx.stroke();
             currentY += padding + 10;
             
-            // --- TÍTULO DE RESULTADO ---
-            ctx.font = 'bold 22px Arial'; 
+            // --- TÍTULO SEÇÃO DE RESULTADOS ---
+            ctx.font = 'bold 20px Arial';
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
             ctx.fillText('Resultado do Orçamento', padding, currentY);
             currentY += lineSpacing;
 
+            // --- DESENHA RESULTADOS ---
             const resultsLayout = [
                 { label: 'Custo Total de Materiais', value: formatCurrency(state.results.custoMateriais) },
                 { label: 'Custo Total da Mão de Obra', value: formatCurrency(state.results.custoMaoObra) },
                 { label: 'Custo Total do Serviço', value: formatCurrency(state.results.custoTotal), bold: true },
-                { label: `Margem Aplicada (${state.inputs.margemLucro.value}%)`, value: formatCurrency(state.results.valorMargem) },
+                { label: `Margem Aplicada (${state.inputs.margemLucro.value || 0}%)`, value: formatCurrency(state.results.valorMargem) },
                 { label: 'Preço Final Sugerido', value: formatCurrency(state.results.precoFinal), final: true },
             ];
             
             resultsLayout.forEach(item => {
                 ctx.textAlign = 'left';
                 ctx.fillStyle = '#555';
-                ctx.font = item.bold ? 'bold 18px Arial' : '18px Arial'; 
+                ctx.font = item.bold ? 'bold 16px Arial' : '16px Arial';
                 ctx.fillText(item.label, padding, currentY);
 
                 ctx.textAlign = 'right';
                 if (item.final) {
-                    ctx.font = 'bold 28px Arial'; 
-                    ctx.fillStyle = '#28a745'; 
-                } else if (item.bold) {
-                    ctx.fillStyle = '#333';
+                    ctx.font = 'bold 22px Arial';
+                    ctx.fillStyle = '#28a745'; // Verde para o preço final
                 }
-                ctx.fillText(item.value, 600 - padding, currentY);
+                ctx.fillText(item.value, canvas.width - padding, currentY);
 
-                currentY += 45; 
+                currentY += 40;
             });
         }
 
-        // --- EVENT LISTENERS (CLIQUE/TOQUE) ---
+        // --- EVENT LISTENERS ---
         canvas.addEventListener('click', (event) => {
             const rect = canvas.getBoundingClientRect();
-            
-            // Calcula as coordenadas do clique ajustadas para a escala de desenho (600x750)
-            const scaleX = canvas.width / rect.width; 
-            const scaleY = canvas.height / rect.height;
-            const x = (event.clientX - rect.left) * scaleX;
-            const y = (event.clientY - rect.top) * scaleY;
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
 
-            // Percorre todos os botões no layout para verificar o clique
-            Object.keys(state.layout).forEach(keyWithAction => {
-                const box = state.layout[keyWithAction];
-                
+            let clickedOnInput = false;
+            Object.keys(state.layout).forEach(key => {
+                const box = state.layout[key];
                 if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
-                    
-                    const [key, action] = keyWithAction.split('-');
-                    
-                    if (action === 'plus') {
-                        handleValueChange(key, '+');
-                    } else if (action === 'minus') {
-                        handleValueChange(key, '-');
-                    }
+                    state.activeInput = key;
+                    clickedOnInput = true;
                 }
             });
+
+            if (!clickedOnInput) {
+                state.activeInput = null;
+            }
+
+            draw(); // Redesenha para mostrar a seleção
         });
 
-        // Inicializa o cálculo e o desenho
+        window.addEventListener('keydown', (event) => {
+            if (!state.activeInput) return;
+
+            const key = event.key;
+            const input = state.inputs[state.activeInput];
+
+            if (key === 'Backspace') {
+                input.value = input.value.slice(0, -1);
+            } else if (!isNaN(key) || (key === '.' && !input.value.includes('.'))) {
+                // Permite números e um único ponto decimal
+                input.value += key;
+            }
+
+            calculateCosts();
+            draw();
+        });
+
+        // --- INICIALIZAÇÃO ---
         calculateCosts();
         draw();
 
