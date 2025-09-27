@@ -29,7 +29,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-        /* --- Input Auxiliar Corrigido (Permite foco, mas fica invisível) --- */
+        /* --- Input Auxiliar Corrigido (Permite foco dinamicamente) --- */
         #auxiliaryInput {
             position: fixed; 
             top: 0; 
@@ -39,8 +39,12 @@
             opacity: 0;
             padding: 0;
             border: none;
-            /* Z-index alto para garantir que não seja bloqueado */
+            /* Z-index baixo por padrão para que o canvas seja clicável */
             z-index: -10; 
+            /* Estilo temporário que será controlado pelo JS */
+            box-sizing: border-box;
+            background-color: transparent;
+            color: transparent;
         }
 
         /* --- ADIÇÃO PARA RESPONSIVIDADE --- */
@@ -62,8 +66,7 @@
     <h2>Simulador de Custos para Serralheria</h2>
     <canvas id="simulatorCanvas" width="600" height="750"></canvas>
 
-    <!-- Input invisível CORRIGIDO: Permanece na tela, mas invisível -->
-    <!-- Usamos inputmode="decimal" para forçar o teclado numérico/decimal no celular -->
+    <!-- Input invisível CORRIGIDO: Agora ele se move para o local do clique para forçar o teclado -->
     <input type="text" id="auxiliaryInput" inputmode="decimal"> 
 
     <script>
@@ -132,7 +135,8 @@
 
         // --- LÓGICA DE CÁLCULO ---
         function calculateCosts() {
-            const getNum = (key) => parseFloat(state.inputs[key].value.replace(',', '.')) || 0;
+            // Permite tanto vírgula quanto ponto para decimal
+            const getNum = (key) => parseFloat(state.inputs[key].value.replace(',', '.')) || 0; 
 
             const custoBarras = getNum('qtdBarras') * state.inputs.qtdBarras.unitPrice;
             const custoTinta = getNum('qtdTinta') * state.inputs.qtdTinta.unitPrice;
@@ -152,6 +156,7 @@
         function draw() {
             // Limpa o canvas
             ctx.clearRect(0, 0, 600, 750); // Limpa as dimensões internas fixas 600x750
+            ctx.setTransform(ctx.getTransform()); // Reseta a transformação de escala para garantir consistência
 
             // --- ESTILOS GLOBAIS ---
             const padding = 30;
@@ -186,8 +191,8 @@
                 state.layout[key] = inputBox; 
 
                 // Desenha a borda do input
-                ctx.strokeStyle = (state.activeInput === key) ? '#007BFF' : '#ccc'; 
-                ctx.lineWidth = (state.activeInput === key) ? 2 : 1;
+                ctx.strokeStyle = (state.activeInput === key) ? '#007BFF' : '#ccc'; // COR AZUL DE SELEÇÃO
+                ctx.lineWidth = (state.activeInput === key) ? 3 : 1; // Borda mais grossa quando ativo
                 ctx.strokeRect(inputBox.x, inputBox.y, inputBox.width, inputBox.height);
 
                 // Desenha o valor dentro do input
@@ -251,17 +256,34 @@
 
         // --- FUNÇÕES DE CONTROLE DE INPUT AUXILIAR (CORRIGIDAS) ---
 
-        function activateAuxiliaryInput(key) {
+        function activateAuxiliaryInput(key, targetRect) { 
             if (!key) return;
 
             // 1. Sincroniza o valor do estado para o input real
             auxiliaryInput.value = state.inputs[key].value;
-            // 2. Tenta focar no input real para abrir o teclado virtual (CRUCIAL PARA CELULAR)
+            
+            // 2. Torna o input auxiliar temporariamente visível e posicionado para forçar o foco/teclado
+            auxiliaryInput.style.opacity = '0.01'; // Quase invisível, mas o suficiente para receber o foco
+            auxiliaryInput.style.left = `${targetRect.left}px`;
+            auxiliaryInput.style.top = `${targetRect.top}px`;
+            auxiliaryInput.style.width = `${targetRect.width}px`;
+            auxiliaryInput.style.height = `${targetRect.height}px`;
+            auxiliaryInput.style.zIndex = '9999'; // Garante que esteja acima de tudo
+
+            // 3. Tenta focar no input real (CRUCIAL PARA CELULAR)
             auxiliaryInput.focus();
         }
 
         function deactivateAuxiliaryInput() {
             auxiliaryInput.blur();
+            // Volta o input para o estado invisível e fora da área de interação
+            auxiliaryInput.style.opacity = '0';
+            auxiliaryInput.style.left = '0px';
+            auxiliaryInput.style.top = '0px';
+            auxiliaryInput.style.width = '1px';
+            auxiliaryInput.style.height = '1px';
+            auxiliaryInput.style.zIndex = '-10'; // Volta para baixo
+
             state.activeInput = null;
             draw();
         }
@@ -282,7 +304,24 @@
                 if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
                     state.activeInput = key;
                     clickedOnInput = true;
-                    activateAuxiliaryInput(key); // Abre o teclado
+                    
+                    // --- Calcula a posição do input na tela (viewport) ---
+                    const inputScreenX = rect.left + box.x / scaleX;
+                    const inputScreenY = rect.top + box.y / scaleY;
+                    const inputScreenWidth = box.width / scaleX;
+                    const inputScreenHeight = box.height / scaleY;
+
+                    const targetRect = {
+                        left: inputScreenX, 
+                        top: inputScreenY, 
+                        width: inputScreenWidth, 
+                        height: inputScreenHeight
+                    };
+
+                    // Desenha imediatamente a cor de seleção
+                    draw(); 
+                    // Ativa o input auxiliar e abre o teclado
+                    activateAuxiliaryInput(key, targetRect); 
                 }
             });
 
@@ -290,7 +329,10 @@
                 deactivateAuxiliaryInput(); // Fecha o teclado se clicar fora
             }
 
-            draw();
+            // O draw() é chamado em activate/deactivate/click, mas mantido aqui por segurança
+            if (!clickedOnInput) {
+                draw();
+            }
         });
 
         // O input auxiliar captura todas as mudanças de valor (mobile e desktop)
@@ -315,10 +357,6 @@
         window.addEventListener('keydown', (event) => {
             if (!state.activeInput) return;
 
-            // Se o input auxiliar estiver focado (o que deve ocorrer em ambos os casos), 
-            // este evento não deve ser usado para alterar o valor, mas sim o 'input' listener.
-            // Usamos aqui apenas para a tecla Enter e Backspace.
-            
             const key = event.key;
             
             if (key === 'Enter') {
@@ -326,11 +364,7 @@
                  return; 
             }
 
-            // Para melhor compatibilidade, deixamos o 'input' do auxiliaryInput fazer as mudanças
-            // para que a experiência seja consistente.
-
-            // Chamar calculateCosts() para garantir que os números sejam processados imediatamente.
-            // (O 'input' listener já faz isso, mas é uma redundância segura)
+            // Redundância para teclado físico:
             calculateCosts();
         });
 
