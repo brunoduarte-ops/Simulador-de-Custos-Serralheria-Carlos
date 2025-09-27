@@ -1,97 +1,169 @@
-// --- LÓGICA DE RENDERIZAÇÃO (DESENHO) ---
-    // ... (Mantenha o resto da função draw() intacto)
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Custos em Canvas para Serralheria</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin: 0;
+            padding: 20px;
+            /* ADIÇÃO: Ajuste de largura para melhor visualização em mobile */
+            width: 100%; 
+            box-sizing: border-box;
+        }
+        h2 {
+            color: #333;
+            text-align: center;
+        }
+        canvas {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
 
-    // --- EVENT LISTENERS (NOVOS) ---
-
-    const auxiliaryInput = document.getElementById('auxiliaryInput'); // Novo elemento
-
-    function activateAuxiliaryInput(key) {
-        if (!key) return;
-
-        // 1. Sincroniza o valor do estado para o input real
-        auxiliaryInput.value = state.inputs[key].value;
-        auxiliaryInput.style.pointerEvents = 'auto'; // Reativa o input
-        
-        // 2. Tenta focar no input real para abrir o teclado virtual
-        setTimeout(() => {
-            auxiliaryInput.focus();
-            // Move o input para fora da tela para que o usuário não o veja, mas o teclado permaneça aberto.
-            auxiliaryInput.style.position = 'absolute';
-            auxiliaryInput.style.top = '-9999px';
-        }, 10);
-    }
-
-    function deactivateAuxiliaryInput() {
-        auxiliaryInput.blur();
-        auxiliaryInput.style.pointerEvents = 'none'; // Desativa o input
-        state.activeInput = null;
-        draw();
-    }
-
-    canvas.addEventListener('click', (event) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        let clickedOnInput = false;
-        Object.keys(state.layout).forEach(key => {
-            const box = state.layout[key];
-            if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
-                state.activeInput = key;
-                clickedOnInput = true;
-                activateAuxiliaryInput(key); // Ativa o input auxiliar
+        /* --- ADIÇÃO PARA RESPONSIVIDADE --- */
+        @media (max-width: 700px) {
+            body {
+                padding: 10px;
             }
-        });
+            #simulatorCanvas {
+                /* Faz o canvas se ajustar à largura da tela do celular */
+                width: 100%; 
+                /* Mantém a proporção do desenho mesmo com redimensionamento */
+                max-width: 600px; 
+                height: auto; 
+            }
+        }
+        /* ---------------------------------- */
+    </style>
+</head>
+<body>
 
-        if (!clickedOnInput) {
-            deactivateAuxiliaryInput(); // Desativa se clicar fora
+    <h2>Simulador de Custos para Serralheria (Canvas)</h2>
+    <canvas id="simulatorCanvas" width="600" height="750"></canvas>
+
+    <input type="text" id="auxiliaryInput" style="position: absolute; top: -9999px; opacity: 0; pointer-events: none;">
+
+    <script>
+        const canvas = document.getElementById('simulatorCanvas');
+        const ctx = canvas.getContext('2d');
+        const auxiliaryInput = document.getElementById('auxiliaryInput'); // Novo elemento
+
+        // --- ESTADO DA APLICAÇÃO ---
+        const state = {
+            inputs: {
+                qtdBarras: { value: '5', label: 'Qtd. Barras de Ferro (6m)', unitPrice: 70 },
+                qtdTinta: { value: '1', label: 'Qtd. Latas de Tinta (3,6L)', unitPrice: 75 },
+                qtdEletrodos: { value: '2', label: 'Qtd. Pacotes de Eletrodo', unitPrice: 39 },
+                horasTrabalho: { value: '8', label: 'Horas de Trabalho' },
+                valorHora: { value: '55', label: 'Valor da Hora (R$)' },
+                margemLucro: { value: '30', label: 'Margem de Lucro (%)' }
+            },
+            results: {
+                custoMateriais: 0,
+                custoMaoObra: 0,
+                custoTotal: 0,
+                valorMargem: 0,
+                precoFinal: 0
+            },
+            activeInput: null, // Guarda a chave do input ativo (ex: 'qtdBarras')
+            layout: {} // Posições dos elementos serão armazenadas aqui
+        };
+
+        // --- FUNÇÕES AUXILIARES ---
+        const formatCurrency = (value) => {
+            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        };
+
+        // --- LÓGICA DE CÁLCULO ---
+        function calculateCosts() {
+            const getNum = (key) => parseFloat(state.inputs[key].value) || 0;
+
+            const custoBarras = getNum('qtdBarras') * state.inputs.qtdBarras.unitPrice;
+            const custoTinta = getNum('qtdTinta') * state.inputs.qtdTinta.unitPrice;
+            const custoEletrodos = getNum('qtdEletrodos') * state.inputs.qtdEletrodos.unitPrice;
+            
+            const custoMaoObra = getNum('horasTrabalho') * getNum('valorHora');
+            const custoMateriais = custoBarras + custoTinta + custoEletrodos;
+            const custoTotal = custoMateriais + custoMaoObra;
+            const margem = getNum('margemLucro') / 100;
+            const valorMargem = custoTotal * margem;
+            const precoFinal = custoTotal + valorMargem;
+
+            state.results = { custoMateriais, custoMaoObra, custoTotal, valorMargem, precoFinal };
         }
 
-        draw(); // Redesenha para mostrar a seleção
-    });
+        // --- LÓGICA DE RENDERIZAÇÃO (DESENHO) ---
+        function draw() {
+            // Limpa o canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // O input auxiliar captura todas as mudanças de valor
-    auxiliaryInput.addEventListener('input', () => {
-        if (!state.activeInput) return;
+            // --- ESTILOS GLOBAIS ---
+            const padding = 30;
+            const inputHeight = 35;
+            const lineSpacing = 55;
+            let currentY = padding + 20;
 
-        let value = auxiliaryInput.value;
-        
-        // Garante que só números e um ponto decimal sejam inseridos
-        value = value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-        
-        state.inputs[state.activeInput].value = value;
+            // --- TÍTULO SEÇÃO DE ENTRADA ---
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'left';
+            ctx.fillText('Entrada de Dados', padding, currentY);
+            currentY += lineSpacing;
 
-        calculateCosts();
-        draw();
-    });
-    
-    // Adiciona um listener para "desfocar" quando o usuário pressionar Enter (mobile)
-    auxiliaryInput.addEventListener('change', deactivateAuxiliaryInput);
-    
-    // Mantém o listener de teclado para desktop
-    window.addEventListener('keydown', (event) => {
-        if (!state.activeInput || event.key === 'Tab' || event.key === 'Enter') return;
-        
-        // Se estiver ativo, cancela o evento para não aparecer no input auxiliar.
-        // O valor já está sendo capturado pelo 'input' listener.
-        event.preventDefault();
+            // --- DESENHA INPUTS ---
+            state.layout = {}; // Reseta o layout para redesenhar
+            ctx.font = '16px Arial';
+            Object.keys(state.inputs).forEach(key => {
+                const input = state.inputs[key];
+                
+                // Desenha o label
+                ctx.fillStyle = '#555';
+                ctx.fillText(input.label, padding, currentY + (inputHeight / 2) + 5);
 
-        const key = event.key;
-        const input = state.inputs[state.activeInput];
-        
-        if (key === 'Backspace') {
-            input.value = input.value.slice(0, -1);
-            auxiliaryInput.value = input.value; // Sincroniza
-        } else if (!isNaN(key) || (key === '.' && !input.value.includes('.'))) {
-            input.value += key;
-            auxiliaryInput.value = input.value; // Sincroniza
-        }
+                // Define a caixa do input
+                const inputBox = {
+                    x: canvas.width / 2,
+                    y: currentY,
+                    width: canvas.width / 2 - padding,
+                    height: inputHeight
+                };
+                state.layout[key] = inputBox; // Armazena a posição
 
-        calculateCosts();
-        draw();
-    });
+                // Desenha a borda do input
+                ctx.strokeStyle = (state.activeInput === key) ? '#007BFF' : '#ccc'; // Borda azul se ativo
+                ctx.lineWidth = (state.activeInput === key) ? 2 : 1;
+                ctx.strokeRect(inputBox.x, inputBox.y, inputBox.width, inputBox.height);
 
+                // Desenha o valor dentro do input
+                ctx.fillStyle = '#000';
+                ctx.textAlign = 'left';
+                // Adiciona um placeholder visual se o campo estiver vazio
+                const displayValue = input.value || (state.activeInput === key ? '' : '0'); 
+                ctx.fillText(displayValue, inputBox.x + 10, currentY + (inputHeight / 2) + 5);
 
-    // --- INICIALIZAÇÃO ---
-    calculateCosts();
-    draw();
+                // Desenha o cursor se o campo estiver ativo (somente para desktop, visual)
+                if (state.activeInput === key && !('ontouchstart' in window)) {
+                    const textWidth = ctx.measureText(displayValue).width;
+                    ctx.fillStyle = '#000';
+                    // Simula um cursor piscando (simplesmente desenha)
+                    ctx.fillRect(inputBox.x + 10 + textWidth + 2, inputBox.y + 8, 2, inputBox.height - 16);
+                }
+
+                currentY += lineSpacing;
+            });
+            
+            // --- SEPARADOR ---
+            currentY += 20;
+            ctx.beginPath();
+            ctx.moveTo(padding, currentY);
+            ctx.lineTo(canvas.width - padding, currentY);
+            ctx.strokeStyle =
