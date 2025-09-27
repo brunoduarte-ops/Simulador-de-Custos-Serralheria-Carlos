@@ -271,10 +271,9 @@
             auxiliaryInput.style.height = `${targetRect.height}px`;
             auxiliaryInput.style.zIndex = '9999'; 
 
-            // 3. Usa setTimeout para forçar o foco após a posição ser processada (CORREÇÃO CHAVE)
-            setTimeout(() => {
-                auxiliaryInput.focus();
-            }, 50); 
+            // 3. Força o foco IMEDIATAMENTE DENTRO DO EVENTO DE CLIQUE (CORREÇÃO CHAVE)
+            // Esta é a forma mais confiável de abrir o teclado em mobile.
+            auxiliaryInput.focus();
         }
 
         function deactivateAuxiliaryInput() {
@@ -380,3 +379,4 @@
 
 </body>
 </html>
+
