@@ -23,6 +23,16 @@
             /* Aumentei um pouco a altura para caber o layout vertical */
             min-height: 800px; 
         }
+        /* Estilo para fixar o botão 'Voltar' no rodapé */
+        #sticky-footer {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #f3f4f6; /* Cor de fundo para que o botão não "flutue" sobre o conteúdo */
+            padding: 1rem 0;
+            z-index: 10;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 sm:p-8 flex flex-col items-center">
@@ -67,7 +77,7 @@
 
 
         <!-- PÁGINA 2: RESULTADO DO ORÇAMENTO (Inicialmente oculta) -->
-        <div id="page-results" class="page hidden">
+        <div id="page-results" class="page hidden pb-20"> <!-- Adicionado pb-20 para evitar que o conteúdo fique atrás do botão fixo -->
             <div class="bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
                 <h2 class="text-2xl font-bold text-gray-800 p-4 bg-gray-50 border-b">
                     <span class="inline-block align-middle mr-2">💰</span> Resumo Detalhado
@@ -76,7 +86,8 @@
                 <canvas id="simulatorCanvas" class="w-full" width="800" height="800"></canvas>
             </div>
             
-            <div class="mt-6">
+            <!-- Botão Fixo de Voltar -->
+            <div id="sticky-footer" class="w-full max-w-4xl px-4 sm:px-8">
                 <button 
                     onclick="changePage('inputs')" 
                     class="w-full py-3 bg-gray-300 text-gray-800 font-bold rounded-xl shadow-md hover:bg-gray-400 transition duration-150">
@@ -294,6 +305,39 @@
         // --- LÓGICA DE RENDERIZAÇÃO NO CANVAS ---
 
         /**
+         * Desenha texto com quebra de linha.
+         * @param {CanvasRenderingContext2D} context Contexto 2D do Canvas.
+         * @param {string} text O texto a ser desenhado.
+         * @param {number} x Posição X inicial.
+         * @param {number} y Posição Y inicial.
+         * @param {number} maxWidth Largura máxima para a linha.
+         * @param {number} lineHeight Altura da linha.
+         * @returns {number} A próxima posição Y após o texto.
+         */
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let currentY = y;
+
+            for(let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                const testWidth = metrics.width;
+
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, currentY);
+                    line = words[n] + ' ';
+                    currentY += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, currentY);
+            return currentY + lineHeight;
+        }
+
+
+        /**
          * Desenha os resultados do orçamento no Canvas.
          */
         function draw() {
@@ -309,25 +353,31 @@
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
             // --- ESTILOS E LAYOUT ---
-            const padding = Math.max(20, canvasWidth * 0.04); // Diminuído de 30px para 20px
+            const padding = Math.max(20, canvasWidth * 0.04); 
             const textX = padding;
             const valueX = canvasWidth - padding;
             let currentY = padding;
 
-            // Espaçamentos verticais (Ajustados para menor espaço)
-            const lineSpacing = canvasWidth > 450 ? 45 : 40; // Diminuído de 50/45
-            const valueLineSpacing = 22; // Diminuído de 25
-            const smallLineSpacing = 20; // Diminuído de 24 (para detalhes de materiais)
+            // Espaçamentos verticais 
+            const lineSpacing = canvasWidth > 450 ? 45 : 40; 
+            const valueLineSpacing = 22; 
+            const smallLineSpacing = 20; 
 
             // Define a fonte base
             ctx.font = 'Inter'; 
 
             // Cabeçalho / Título do Recibo
-            ctx.font = 'bold 22px Inter'; // Diminuído de 24px para 22px
+            ctx.font = 'bold 22px Inter'; 
             ctx.fillStyle = '#1e40af'; // Azul escuro
             ctx.textAlign = 'left';
-            ctx.fillText('Orçamento de Serviços de Serralheria', textX, currentY);
-            currentY += 35; // Diminuído de 40
+
+            const titleText = 'Orçamento de Serviços de Serralheria';
+            const titleLineHeight = 30; // Altura da linha para o título
+
+            // Quebra de linha dinâmica para o título
+            const nextYAfterTitle = wrapText(ctx, titleText, textX, currentY, canvasWidth - 2 * padding, titleLineHeight);
+            currentY = nextYAfterTitle; 
+            currentY += 5; // Pequeno ajuste após o título
 
             // Linha de separação
             ctx.strokeStyle = '#9ca3af'; // Cinza
@@ -336,34 +386,34 @@
             ctx.moveTo(padding, currentY);
             ctx.lineTo(canvasWidth - padding, currentY);
             ctx.stroke();
-            currentY += 20; // Diminuído de 25
+            currentY += 20; 
 
             // --- SEÇÃO 1: CUSTOS BASE ---
 
             // Título Custos Base
-            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
+            ctx.font = 'bold 16px Inter'; 
             ctx.fillStyle = '#333333';
             ctx.fillText('1. Custos Base (Custo Material + Mão de Obra)', textX, currentY);
-            currentY += 30; // Diminuído de 35
+            currentY += 30; 
 
             // --- Linha: Custo de Materiais ---
-            ctx.font = '14px Inter'; // Diminuído de 16px para 14px
+            ctx.font = '14px Inter'; 
             ctx.fillStyle = '#555';
             ctx.fillText('Custo Total de Materiais:', textX + 10, currentY);
             currentY += valueLineSpacing; 
 
-            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
+            ctx.font = 'bold 16px Inter'; 
             ctx.fillStyle = '#000';
             ctx.fillText(formatCurrency(state.results.custoMateriais), textX + 20, currentY);
             currentY += lineSpacing; 
 
             // --- Linha: Custo de Mão de Obra ---
-            ctx.font = '14px Inter'; // Diminuído de 16px para 14px
+            ctx.font = '14px Inter'; 
             ctx.fillStyle = '#555';
             ctx.fillText('Custo Total da Mão de Obra:', textX + 10, currentY);
             currentY += valueLineSpacing; 
 
-            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
+            ctx.font = 'bold 16px Inter'; 
             ctx.fillStyle = '#000';
             ctx.fillText(formatCurrency(state.results.custoMaoObra), textX + 20, currentY);
             currentY += lineSpacing; 
@@ -376,12 +426,12 @@
             ctx.lineTo(valueX, currentY - lineSpacing + valueLineSpacing/2);
             ctx.stroke();
 
-            ctx.font = 'bold 18px Inter'; // Diminuído de 20px para 18px
+            ctx.font = 'bold 18px Inter'; 
             ctx.fillStyle = '#1e40af';
             ctx.fillText('CUSTO TOTAL DO SERVIÇO (C):', textX, currentY);
             currentY += valueLineSpacing + 3; 
 
-            ctx.font = 'bold 20px Inter'; // Diminuído de 22px para 20px
+            ctx.font = 'bold 20px Inter'; 
             ctx.fillStyle = '#1e40af';
             ctx.fillText(formatCurrency(state.results.custoTotal), textX + 20, currentY);
             currentY += lineSpacing; 
@@ -390,14 +440,14 @@
             // --- SEÇÃO 2: MARGEM / LUCRO ---
             
             // Título Margem
-            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
+            ctx.font = 'bold 16px Inter'; 
             ctx.fillStyle = '#333';
             ctx.textAlign = 'left';
             ctx.fillText('2. Margem de Lucro', textX, currentY);
-            currentY += 30; // Diminuído de 35
+            currentY += 30; 
 
             // --- Linha: Margem Aplicada ---
-            ctx.font = '14px Inter'; // Diminuído de 16px para 14px
+            ctx.font = '14px Inter'; 
             ctx.fillStyle = '#ca8a04'; 
             
             const margemValue = state.inputs.margemLucro.value;
@@ -406,7 +456,7 @@
             ctx.fillText(`Margem de Lucro Aplicada (${margemDisplay}% de C):`, textX + 10, currentY);
             currentY += valueLineSpacing; 
             
-            ctx.font = 'bold 16px Inter'; // Diminuído de 18px para 16px
+            ctx.font = 'bold 16px Inter'; 
             ctx.fillStyle = '#ca8a04';
             ctx.fillText(formatCurrency(state.results.valorMargem), textX + 20, currentY);
             currentY += lineSpacing * 1.5;
@@ -426,12 +476,12 @@
             ctx.stroke();
 
             // Preço Final
-            ctx.font = 'bold 18px Inter'; // Diminuído de 20px para 18px
+            ctx.font = 'bold 18px Inter'; 
             ctx.fillStyle = '#059669'; // Verde mais escuro para contraste
             ctx.fillText('PREÇO FINAL SUGERIDO:', textX, currentY);
             currentY += valueLineSpacing + 5; 
 
-            ctx.font = 'bold 28px Inter'; // Diminuído de 30px para 28px (Mantendo o destaque)
+            ctx.font = 'bold 28px Inter'; 
             ctx.fillStyle = '#059669';
             ctx.fillText(formatCurrency(state.results.precoFinal), textX + 20, currentY);
 
@@ -444,13 +494,13 @@
             
             // --- SEÇÃO 3: DETALHES DE MATERIAIS ---
             currentY += 10;
-            ctx.font = 'bold 13px Inter'; // Diminuído de 14px para 13px
+            ctx.font = 'bold 13px Inter'; 
             ctx.fillStyle = '#4b5563'; // Cinza escuro
             ctx.textAlign = 'left';
             ctx.fillText('3. Detalhes do Cálculo de Materiais:', textX, currentY);
-            currentY += 25; // Diminuído de 30
+            currentY += 25; 
 
-            ctx.font = '12px Inter'; // Diminuído de 13px para 12px
+            ctx.font = '12px Inter'; 
             // Recalcula custos detalhados para exibição
             const materialCosts = calculateMaterialCost();
             
@@ -481,10 +531,10 @@
                     ctx.fillText(`${input.label}:`, textX + 15, materialDetailY);
                     materialDetailY += smallLineSpacing - 5; 
 
-                    ctx.font = 'italic 10px Inter'; // Diminuído de 11px para 10px
+                    ctx.font = 'italic 10px Inter'; 
                     ctx.fillText(detailText, textX + 25, materialDetailY);
 
-                    ctx.font = 'bold 12px Inter'; // Diminuído de 13px para 12px
+                    ctx.font = 'bold 12px Inter'; 
                     ctx.textAlign = 'right';
                     ctx.fillText(totalText, valueX, materialDetailY);
 
