@@ -1,447 +1,456 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Orçamento para Serralheria</title>
-    <!-- Incluindo Tailwind CSS para um design moderno e responsivo -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Estilos globais usando Inter font */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .page {
-            /* Adiciona uma transição suave ao alternar as páginas */
-            transition: opacity 0.3s ease-in-out;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Orçamento para Serralheria</title>
+    <!-- Incluindo Tailwind CSS para um design moderno e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos globais usando Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .page {
+            /* Adiciona uma transição suave ao alternar as páginas */
+            transition: opacity 0.3s ease-in-out;
+        }
+    </style>
 </head>
 <body class="min-h-screen p-4 sm:p-8 flex flex-col items-center">
 
-    <div class="w-full max-w-4xl">
-        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">
-            Simulador Serralheria
-        </h1>
-        
-        <!-- PÁGINA 1: ENTRADA DE DADOS -->
-        <div id="page-inputs" class="page">
-            <div class="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
-                <h2 class="text-xl font-semibold text-blue-700 mb-6 border-b pb-2">
-                    <span class="inline-block align-middle mr-2">⚙️</span> Configuração de Custos
-                </h2>
-                
-                <form id="cost-form" class="space-y-5">
-                    <!-- Seção Materiais -->
-                    <p class="text-sm font-medium text-gray-500 pt-2 border-t mt-4">Custo de Materiais</p>
-                    <div class="space-y-3" id="material-inputs">
-                        <!-- Inputs serão preenchidos via JS para manter a estrutura do state -->
-                    </div>
+    <div class="w-full max-w-4xl">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">
+            Simulador Serralheria
+        </h1>
+        
+        <!-- PÁGINA 1: ENTRADA DE DADOS -->
+        <div id="page-inputs" class="page">
+            <div class="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+                <h2 class="text-xl font-semibold text-blue-700 mb-6 border-b pb-2">
+                    <span class="inline-block align-middle mr-2">⚙️</span> Configuração de Custos
+                </h2>
+                
+                <form id="cost-form" class="space-y-5">
+                    <!-- Seção Materiais -->
+                    <p class="text-sm font-medium text-gray-500 pt-2 border-t mt-4">Custo de Materiais</p>
+                    <div class="space-y-3" id="material-inputs">
+                        <!-- Inputs serão preenchidos via JS para manter a estrutura do state -->
+                    </div>
 
-                    <!-- Seção Mão de Obra e Lucro -->
-                    <p class="text-sm font-medium text-gray-500 pt-2 border-t mt-6">Custo de Mão de Obra e Margem</p>
-                    <div class="space-y-3" id="labor-inputs">
-                        <!-- Inputs serão preenchidos via JS para manter a estrutura do state -->
-                    </div>
-                </form>
+                    <!-- Seção Mão de Obra e Lucro -->
+                    <p class="text-sm font-medium text-gray-500 pt-2 border-t mt-6">Custo de Mão de Obra e Margem</p>
+                    <div class="space-y-3" id="labor-inputs">
+                        <!-- Inputs serão preenchidos via JS para manter a estrutura do state -->
+                    </div>
+                </form>
 
-                <div class="mt-8">
-                    <button 
-                        id="calculate-button"
-                        onclick="changePage('results')" 
-                        class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition duration-150">
-                        Calcular Orçamento &gt;
-                    </button>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- PÁGINA 2: RESULTADO DO ORÇAMENTO (Inicialmente oculta) -->
-        <div id="page-results" class="page hidden">
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-                <h2 class="text-xl font-semibold text-gray-800 p-4 bg-gray-50 border-b">
-                    <span class="inline-block align-middle mr-2">💰</span> Resumo do Orçamento
-                </h2>
-                <!-- O Canvas agora ocupa a largura total da página de resultados -->
-                <canvas id="simulatorCanvas" class="w-full" width="600" height="750"></canvas>
-            </div>
-            
-            <div class="mt-6">
-                <button 
-                    onclick="changePage('inputs')" 
-                    class="w-full py-3 bg-gray-300 text-gray-800 font-bold rounded-lg shadow-md hover:bg-gray-400 transition duration-150">
-                    &lt; Voltar e Editar Custos
-                </button>
-            </div>
-        </div>
-        
-    </div>
+                <div class="mt-8">
+                    <button 
+                        id="calculate-button"
+                        onclick="changePage('results')" 
+                        class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition duration-150">
+                        Calcular Orçamento &gt;
+                    </button>
+                </div>
+            </div>
+        </div>
 
 
-    <script>
-        // Configuração inicial do estado da aplicação, agora usando IDs dos inputs HTML
-        const state = {
-            inputs: {
-                // Materiais (com preço unitário)
-                qtdBarras: { value: 5, label: 'Qtd. Barras de Ferro (6m)', unitPrice: 70, id: 'qtdBarras', type: 'number', placeholder: 'Ex: 5' },
-                qtdTinta: { value: 1, label: 'Qtd. Latas de Tinta (3,6L)', unitPrice: 75, id: 'qtdTinta', type: 'number', placeholder: 'Ex: 1' },
-                qtdEletrodos: { value: 2, label: 'Qtd. Pacotes de Eletrodo', unitPrice: 39, id: 'qtdEletrodos', type: 'number', placeholder: 'Ex: 2' },
-
-                // Mão de Obra / Lucro (sem preço unitário definido no state, são apenas valores de entrada)
-                horasTrabalho: { value: 8, label: 'Horas de Trabalho', id: 'horasTrabalho', type: 'number', placeholder: 'Ex: 8' },
-                valorHora: { value: 55, label: 'Valor da Hora (R$)', id: 'valorHora', type: 'number', placeholder: 'Ex: 55' },
-                margemLucro: { value: 30, label: 'Margem de Lucro (%)', id: 'margemLucro', type: 'number', placeholder: 'Ex: 30' }
-            },
-            results: {
-                custoMateriais: 0,
-                custoMaoObra: 0,
-                custoTotal: 0,
-                valorMargem: 0,
-                precoFinal: 0
-            },
-            currentPage: 'inputs' // Novo: Controla a página atual ('inputs' ou 'results')
-        };
-
-        const canvas = document.getElementById('simulatorCanvas');
-        const ctx = canvas.getContext('2d');
-        const pageInputs = document.getElementById('page-inputs');
-        const pageResults = document.getElementById('page-results');
-
-        // --- FUNÇÕES DE NAVEGAÇÃO E UI ---
-        
-        /**
-         * Alterna a visualização entre a página de inputs e a página de resultados.
-         * @param {string} page 'inputs' ou 'results'.
-         */
-        window.changePage = (page) => {
-            if (state.currentPage === page) return;
-            state.currentPage = page;
-            renderUI();
-        };
-
-        /**
-         * Atualiza a visibilidade das páginas e o título principal.
-         */
-        function renderUI() {
-            if (state.currentPage === 'inputs') {
-                pageInputs.classList.remove('hidden');
-                pageResults.classList.add('hidden');
-            } else {
-                pageInputs.classList.add('hidden');
-                pageResults.classList.remove('hidden');
-                // Garante que os custos são calculados e o canvas é redesenhado antes de mostrar
-                updateApp(); 
-            }
-        }
+        <!-- PÁGINA 2: RESULTADO DO ORÇAMENTO (Inicialmente oculta) -->
+        <div id="page-results" class="page hidden">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                <h2 class="text-xl font-semibold text-gray-800 p-4 bg-gray-50 border-b">
+                    <span class="inline-block align-middle mr-2">💰</span> Resumo do Orçamento
+                </h2>
+                <!-- O Canvas agora ocupa a largura total da página de resultados -->
+                <canvas id="simulatorCanvas" class="w-full" width="600" height="750"></canvas>
+            </div>
+            
+            <div class="mt-6">
+                <button 
+                    onclick="changePage('inputs')" 
+                    class="w-full py-3 bg-gray-300 text-gray-800 font-bold rounded-lg shadow-md hover:bg-gray-400 transition duration-150">
+                    &lt; Voltar e Editar Custos
+                </button>
+            </div>
+        </div>
+        
+    </div>
 
 
-        // --- FUNÇÕES AUXILIARES ---
+    <script>
+        // Configuração inicial do estado da aplicação, agora usando IDs dos inputs HTML
+        const state = {
+            inputs: {
+                // Materiais (com preço unitário)
+                qtdBarras: { value: 5, label: 'Qtd. Barras de Ferro (6m)', unitPrice: 70, id: 'qtdBarras', type: 'number', placeholder: 'Ex: 5' },
+                qtdTinta: { value: 1, label: 'Qtd. Latas de Tinta (3,6L)', unitPrice: 75, id: 'qtdTinta', type: 'number', placeholder: 'Ex: 1' },
+                qtdEletrodos: { value: 2, label: 'Qtd. Pacotes de Eletrodo', unitPrice: 39, id: 'qtdEletrodos', type: 'number', placeholder: 'Ex: 2' },
 
-        /**
-         * Converte um número para o formato de moeda Real (R$).
-         * @param {number} value O valor a ser formatado.
-         * @returns {string} O valor formatado como moeda.
-         */
-        const formatCurrency = (value) => {
-            return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        };
+                // Mão de Obra / Lucro (sem preço unitário definido no state, são apenas valores de entrada)
+                horasTrabalho: { value: 8, label: 'Horas de Trabalho', id: 'horasTrabalho', type: 'number', placeholder: 'Ex: 8' },
+                valorHora: { value: 55, label: 'Valor da Hora (R$)', id: 'valorHora', type: 'number', placeholder: 'Ex: 55' },
+                margemLucro: { value: 30, label: 'Margem de Lucro (%)', id: 'margemLucro', type: 'number', placeholder: 'Ex: 30' }
+            },
+            results: {
+                custoMateriais: 0,
+                custoMaoObra: 0,
+                custoTotal: 0,
+                valorMargem: 0,
+                precoFinal: 0
+            },
+            currentPage: 'inputs' // Novo: Controla a página atual ('inputs' ou 'results')
+        };
 
-        /**
-         * Gera o markup HTML para um campo de input.
-         * @param {string} key Chave do state.inputs.
-         * @returns {string} Markup HTML.
-         */
-        function generateInputMarkup(key) {
-            const inputData = state.inputs[key];
-            const isMaterial = ['qtdBarras', 'qtdTinta', 'qtdEletrodos'].includes(key);
-            // Usando toFixed(2) para garantir que o preço unitário seja exibido com duas casas decimais
-            const unitPriceDisplay = isMaterial ? `(R$ ${inputData.unitPrice.toFixed(2)})` : '';
-            const unitLabel = isMaterial ? 'Qtd.' : (key === 'margemLucro' ? '%' : 'Valor');
+        const canvas = document.getElementById('simulatorCanvas');
+        const ctx = canvas.getContext('2d');
+        const pageInputs = document.getElementById('page-inputs');
+        const pageResults = document.getElementById('page-results');
 
-            return `
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
-                    <label for="${inputData.id}" class="text-sm font-medium text-gray-700 w-full sm:w-1/2 mb-1 sm:mb-0">
-                        ${inputData.label} <span class="text-gray-400 font-normal">${unitPriceDisplay}</span>
-                    </label>
-                    <div class="relative w-full sm:w-1/2">
-                        <input
-                            type="number"
-                            id="${inputData.id}"
-                            value="${inputData.value}"
-                            placeholder="${inputData.placeholder}"
-                            min="0"
-                            step="${key.includes('Hora') || key.includes('Lucro') ? '0.01' : '1'}"
-                            data-key="${key}"
-                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-right pr-10"
-                            oninput="handleInputChange(event)"
-                        />
-                        <span class="absolute right-0 top-0 mt-2 mr-3 text-gray-500 text-sm">${unitLabel}</span>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Atribui a função ao escopo global para uso no oninput (necessário em HTML de arquivo único)
-        window.handleInputChange = (event) => {
-            const key = event.target.dataset.key;
-            let value = event.target.value;
+        // --- FUNÇÕES DE NAVEGAÇÃO E UI ---
+        
+        /**
+         * Alterna a visualização entre a página de inputs e a página de resultados.
+         * @param {string} page 'inputs' ou 'results'.
+         */
+        window.changePage = (page) => {
+            if (state.currentPage === page) return;
+            state.currentPage = page;
+            renderUI();
+        };
 
-            // Garante que o valor seja tratado como número
-            value = parseFloat(value);
-            if (isNaN(value) || value < 0) {
-                value = 0;
-            }
-
-            // Atualiza o valor no state
-            state.inputs[key].value = value;
-            
-            // Se estiver na página de resultados, atualiza o Canvas imediatamente (útil se o usuário volta e edita)
-            if (state.currentPage === 'results') {
-                updateApp();
-            }
-        };
-
-        /**
-         * Preenche o DOM com os inputs gerados.
-         */
-        function renderInputsToDOM() {
-            const materialContainer = document.getElementById('material-inputs');
-            const laborContainer = document.getElementById('labor-inputs');
-            
-            // Renderiza Materiais
-            materialContainer.innerHTML = '';
-            ['qtdBarras', 'qtdTinta', 'qtdEletrodos'].forEach(key => {
-                materialContainer.innerHTML += generateInputMarkup(key);
-            });
-
-            // Renderiza Mão de Obra / Lucro
-            laborContainer.innerHTML = '';
-            ['horasTrabalho', 'valorHora', 'margemLucro'].forEach(key => {
-                laborContainer.innerHTML += generateInputMarkup(key);
-            });
-        }
+        /**
+         * Atualiza a visibilidade das páginas e o título principal.
+         */
+        function renderUI() {
+            if (state.currentPage === 'inputs') {
+                pageInputs.classList.remove('hidden');
+                pageResults.classList.add('hidden');
+            } else {
+                pageInputs.classList.add('hidden');
+                pageResults.classList.remove('hidden');
+                // Garante que os custos são calculados e o canvas é redesenhado antes de mostrar
+                updateApp(); 
+            }
+        }
 
 
-        // --- LÓGICA DE CÁLCULO ---
+        // --- FUNÇÕES AUXILIARES ---
 
-        /**
-         * Recalcula todos os custos e resultados.
-         */
-        function calculateCosts() {
-            const getNum = (key) => state.inputs[key].value || 0;
+        /**
+         * Converte um número para o formato de moeda Real (R$).
+         * @param {number} value O valor a ser formatado.
+         * @returns {string} O valor formatado como moeda.
+         */
+        const formatCurrency = (value) => {
+            return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        };
 
-            const custoBarras = getNum('qtdBarras') * state.inputs.qtdBarras.unitPrice;
-            const custoTinta = getNum('qtdTinta') * state.inputs.qtdTinta.unitPrice;
-            const custoEletrodos = getNum('qtdEletrodos') * state.inputs.qtdEletrodos.unitPrice;
-            
-            const custoMaoObra = getNum('horasTrabalho') * getNum('valorHora');
-            const custoMateriais = custoBarras + custoTinta + custoEletrodos;
-            
-            const custoTotal = custoMateriais + custoMaoObra;
-            
-            // Margem de lucro: (Custo Total * Margem %)
-            const margem = getNum('margemLucro') / 100;
-            const valorMargem = custoTotal * margem;
-            const precoFinal = custoTotal + valorMargem;
+        /**
+         * Gera o markup HTML para um campo de input.
+         * @param {string} key Chave do state.inputs.
+         * @returns {string} Markup HTML.
+         */
+        function generateInputMarkup(key) {
+            const inputData = state.inputs[key];
+            const isMaterial = ['qtdBarras', 'qtdTinta', 'qtdEletrodos'].includes(key);
+            
+            // Removido o display do preço unitário da label
+            // const unitPriceDisplay = isMaterial ? `(R$ ${inputData.unitPrice.toFixed(2)})` : '';
+            const unitPriceDisplay = ''; // Deixado vazio conforme a solicitação
 
-            state.results = {
-                custoMateriais: custoMateriais,
-                custoMaoObra: custoMaoObra,
-                custoTotal: custoTotal,
-                valorMargem: valorMargem,
-                precoFinal: precoFinal
-            };
-        }
+            const unitLabel = isMaterial ? 'Qtd.' : (key === 'margemLucro' ? '%' : 'Valor');
 
+            return `
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                    <label for="${inputData.id}" class="text-sm font-medium text-gray-700 w-full sm:w-1/2 mb-1 sm:mb-0">
+                        ${inputData.label} <span class="text-gray-400 font-normal">${unitPriceDisplay}</span>
+                    </label>
+                    <div class="relative w-full sm:w-1/2">
+                        <input
+                            type="number"
+                            id="${inputData.id}"
+                            value="${inputData.value}"
+                            placeholder="${inputData.placeholder}"
+                            min="0"
+                            step="${key.includes('Hora') || key.includes('Lucro') ? '0.01' : '1'}"
+                            data-key="${key}"
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-right pr-10"
+                            oninput="handleInputChange(event)"
+                        />
+                        <span class="absolute right-0 top-0 mt-2 mr-3 text-gray-500 text-sm">${unitLabel}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Atribui a função ao escopo global para uso no oninput (necessário em HTML de arquivo único)
+        window.handleInputChange = (event) => {
+            const key = event.target.dataset.key;
+            let value = event.target.value;
 
-        // --- LÓGICA DE RENDERIZAÇÃO NO CANVAS ---
+            // Garante que o valor seja tratado como número
+            value = parseFloat(value);
+            if (isNaN(value) || value < 0) {
+                value = 0;
+            }
 
-        /**
-         * Desenha os resultados do orçamento no Canvas.
-         */
-        function draw() {
-            // Reajusta o tamanho do Canvas para a largura atual do contêiner
-            canvas.width = canvas.clientWidth;
-            
-            const canvasWidth = canvas.clientWidth;
-            const canvasHeight = canvas.clientHeight;
+            // Atualiza o valor no state
+            state.inputs[key].value = value;
+            
+            // Se estiver na página de resultados, atualiza o Canvas imediatamente (útil se o usuário volta e edita)
+            if (state.currentPage === 'results') {
+                updateApp();
+            }
+        };
 
-            // Limpa o canvas
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        /**
+         * Preenche o DOM com os inputs gerados.
+         */
+        function renderInputsToDOM() {
+            const materialContainer = document.getElementById('material-inputs');
+            const laborContainer = document.getElementById('labor-inputs');
+            
+            // Renderiza Materiais
+            materialContainer.innerHTML = '';
+            ['qtdBarras', 'qtdTinta', 'qtdEletrodos'].forEach(key => {
+                materialContainer.innerHTML += generateInputMarkup(key);
+            });
 
-            // --- ESTILOS E LAYOUT ---
-            const padding = Math.max(20, canvasWidth * 0.05); // Padding responsivo
-            const textX = padding;
-            const valueX = canvasWidth - padding;
-            let currentY = padding;
-            // Ajuste a separação da linha para acomodar melhor em telas pequenas
-            const lineSpacing = canvasWidth > 400 ? 40 : 35; 
-
-            // Cabeçalho / Título do Recibo
-            ctx.font = 'bold 24px Inter';
-            ctx.fillStyle = '#007BFF';
-            ctx.textAlign = 'left';
-            ctx.fillText('Resumo do Orçamento', textX, currentY);
-            currentY += 45;
-
-            // Linha de separação
-            ctx.strokeStyle = '#ddd';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(padding, currentY);
-            ctx.lineTo(canvasWidth - padding, currentY);
-            ctx.stroke();
-            currentY += 20;
-
-            // --- SEÇÃO DE CUSTOS DETALHADOS ---
-
-            // Título
-            ctx.font = 'bold 18px Inter';
-            ctx.fillStyle = '#333';
-            ctx.fillText('Custos Base', textX, currentY);
-            currentY += 30;
-
-            // Linha: Custo de Materiais
-            ctx.font = '16px Inter';
-            ctx.fillStyle = '#555';
-            ctx.fillText('Custo Total de Materiais:', textX, currentY);
-            ctx.textAlign = 'right';
-            ctx.fillText(formatCurrency(state.results.custoMateriais), valueX, currentY);
-            currentY += lineSpacing;
-
-            // Linha: Custo de Mão de Obra
-            ctx.textAlign = 'left';
-            ctx.fillText('Custo Total da Mão de Obra:', textX, currentY);
-            ctx.textAlign = 'right';
-            ctx.fillText(formatCurrency(state.results.custoMaoObra), valueX, currentY);
-            currentY += lineSpacing;
-
-            // Linha: Custo Total
-            // Reduzindo o tamanho da fonte para o CUSTO TOTAL para evitar sobreposição
-            ctx.font = 'bold 16px Inter'; 
-            ctx.fillStyle = '#000';
-            ctx.textAlign = 'left';
-            ctx.fillText('CUSTO TOTAL DO SERVIÇO (C):', textX, currentY);
-            ctx.textAlign = 'right';
-            ctx.fillText(formatCurrency(state.results.custoTotal), valueX, currentY);
-            currentY += lineSpacing;
+            // Renderiza Mão de Obra / Lucro
+            laborContainer.innerHTML = '';
+            ['horasTrabalho', 'valorHora', 'margemLucro'].forEach(key => {
+                laborContainer.innerHTML += generateInputMarkup(key);
+            });
+        }
 
 
-            // --- SEÇÃO MARGEM / LUCRO ---
-            currentY += 20;
-            ctx.font = 'bold 18px Inter';
-            ctx.fillStyle = '#333';
-            ctx.textAlign = 'left';
-            ctx.fillText('Margem e Preço Final', textX, currentY);
-            currentY += 30;
+        // --- LÓGICA DE CÁLCULO ---
 
-            // Linha: Margem Aplicada
-            ctx.font = '16px Inter';
-            ctx.fillStyle = '#555';
-            ctx.textAlign = 'left';
-            // Usa toFixed(0) para a margem se for número inteiro, ou toFixed(2) se for decimal
-            const margemDisplay = (state.inputs.margemLucro.value % 1 === 0) ? 
-                                  state.inputs.margemLucro.value.toFixed(0) : 
-                                  state.inputs.margemLucro.value.toFixed(2);
-                                  
-            ctx.fillText(`Margem de Lucro Aplicada (${margemDisplay}%):`, textX, currentY);
-            ctx.textAlign = 'right';
-            ctx.fillText(formatCurrency(state.results.valorMargem), valueX, currentY);
-            currentY += lineSpacing;
+        /**
+         * Recalcula todos os custos e resultados.
+         */
+        function calculateCosts() {
+            const getNum = (key) => state.inputs[key].value || 0;
 
+            const custoBarras = getNum('qtdBarras') * state.inputs.qtdBarras.unitPrice;
+            const custoTinta = getNum('qtdTinta') * state.inputs.qtdTinta.unitPrice;
+            const custoEletrodos = getNum('qtdEletrodos') * state.inputs.qtdEletrodos.unitPrice;
+            
+            const custoMaoObra = getNum('horasTrabalho') * getNum('valorHora');
+            const custoMateriais = custoBarras + custoTinta + custoEletrodos;
+            
+            const custoTotal = custoMateriais + custoMaoObra;
+            
+            // Margem de lucro: (Custo Total * Margem %)
+            const margem = getNum('margemLucro') / 100;
+            const valorMargem = custoTotal * margem;
+            const precoFinal = custoTotal + valorMargem;
 
-            // --- PREÇO FINAL (DESTAQUE) ---
-            currentY += 20;
-            ctx.strokeStyle = '#28a745';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(padding, currentY);
-            ctx.lineTo(canvasWidth - padding, currentY);
-            ctx.stroke();
-            currentY += 30;
-
-            // Reduzindo o tamanho da fonte para o PREÇO FINAL para evitar sobreposição
-            ctx.font = 'bold 24px Inter'; 
-            ctx.fillStyle = '#28a745'; // Verde para o preço final
-            ctx.textAlign = 'left';
-            ctx.fillText('PREÇO FINAL SUGERIDO:', textX, currentY);
-            
-            ctx.textAlign = 'right';
-            ctx.fillText(formatCurrency(state.results.precoFinal), valueX, currentY);
-            currentY += lineSpacing;
-            
-            // --- DETALHES DE MATERIAIS ---
-            currentY += 40;
-            ctx.font = 'bold 14px Inter';
-            ctx.fillStyle = '#888';
-            ctx.textAlign = 'left';
-            ctx.fillText('DETALHE DOS CUSTOS DE MATERIAIS:', textX, currentY);
-            currentY += 25;
-
-            ctx.font = '14px Inter';
-            Object.keys(state.inputs).forEach(key => {
-                if (['qtdBarras', 'qtdTinta', 'qtdEletrodos'].includes(key)) {
-                    const input = state.inputs[key];
-                    const lineTotal = input.value * input.unitPrice;
-                    
-                    // Converte a quantidade para string sem decimais se for um número inteiro, senão usa 2 casas
-                    const qtdDisplay = (input.value % 1 === 0) ? input.value.toFixed(0) : input.value.toFixed(2);
-                    const totalText = `${qtdDisplay} x ${formatCurrency(input.unitPrice)} = ${formatCurrency(lineTotal)}`;
-                    
-                    ctx.fillStyle = '#888';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(`${input.label}:`, textX + 10, currentY);
-                    
-                    ctx.textAlign = 'right';
-                    ctx.fillText(totalText, valueX, currentY);
-                    currentY += 25;
-                }
-            });
-        }
-        
-        // Função auxiliar para calcular o custo material para exibição detalhada
-        function calculateMaterialCost() {
-             const getNum = (key) => state.inputs[key].value || 0;
-             return {
-                custoBarras: getNum('qtdBarras') * state.inputs.qtdBarras.unitPrice,
-                custoTinta: getNum('qtdTinta') * state.inputs.qtdTinta.unitPrice,
-                custoEletrodos: getNum('qtdEletrodos') * state.inputs.qtdEletrodos.unitPrice
-             };
-        }
+            state.results = {
+                custoMateriais: custoMateriais,
+                custoMaoObra: custoMaoObra,
+                custoTotal: custoTotal,
+                valorMargem: valorMargem,
+                precoFinal: precoFinal
+            };
+        }
 
 
-        // --- FLUXO PRINCIPAL ---
+        // --- LÓGICA DE RENDERIZAÇÃO NO CANVAS ---
 
-        /**
-         * Inicializa o aplicativo.
-         */
-        function init() {
-            renderInputsToDOM();
-            calculateCosts(); // Calcula custos iniciais
-            renderUI();       // Renderiza a página correta
-        }
+        /**
+         * Desenha os resultados do orçamento no Canvas.
+         */
+        function draw() {
+            // Reajusta o tamanho do Canvas para a largura atual do contêiner
+            canvas.width = canvas.clientWidth;
+            
+            const canvasWidth = canvas.clientWidth;
+            const canvasHeight = canvas.clientHeight;
 
-        /**
-         * Atualiza o estado (cálculos) e redesenha o Canvas.
-         */
-        function updateApp() {
-            calculateCosts();
-            draw();
-        }
-        
-        // Adiciona listener para redimensionamento da janela para garantir a responsividade do Canvas
-        window.addEventListener('resize', () => {
-             if (state.currentPage === 'results') {
-                updateApp();
-             }
-        });
+            // Limpa o canvas
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-        // --- CHAMADA DE INICIALIZAÇÃO ---
-        window.onload = init;
-        
-    </script>
+            // --- ESTILOS E LAYOUT ---
+            const padding = Math.max(20, canvasWidth * 0.05); // Padding responsivo
+            const textX = padding;
+            const valueX = canvasWidth - padding;
+            let currentY = padding;
+            // Ajuste a separação da linha para acomodar melhor em telas pequenas
+            const lineSpacing = canvasWidth > 400 ? 40 : 35; 
+
+            // Cabeçalho / Título do Recibo
+            ctx.font = 'bold 24px Inter';
+            ctx.fillStyle = '#007BFF';
+            ctx.textAlign = 'left';
+            ctx.fillText('Resumo do Orçamento', textX, currentY);
+            currentY += 45;
+
+            // Linha de separação
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, currentY);
+            ctx.lineTo(canvasWidth - padding, currentY);
+            ctx.stroke();
+            currentY += 20;
+
+            // --- SEÇÃO DE CUSTOS DETALHADOS ---
+
+            // Título
+            ctx.font = 'bold 18px Inter';
+            ctx.fillStyle = '#333';
+            ctx.fillText('Custos Base', textX, currentY);
+            currentY += 30;
+
+            // Linha: Custo de Materiais
+            ctx.font = '16px Inter';
+            ctx.fillStyle = '#555';
+            ctx.textAlign = 'left';
+            ctx.fillText('Custo Total de Materiais:', textX, currentY);
+            ctx.textAlign = 'right';
+            ctx.fillText(formatCurrency(state.results.custoMateriais), valueX, currentY);
+            currentY += lineSpacing;
+
+            // Linha: Custo de Mão de Obra
+            ctx.textAlign = 'left';
+            ctx.fillText('Custo Total da Mão de Obra:', textX, currentY);
+            ctx.textAlign = 'right';
+            ctx.fillText(formatCurrency(state.results.custoMaoObra), valueX, currentY);
+            currentY += lineSpacing;
+
+            // Linha: Custo Total
+            // Reduzindo o tamanho da fonte para o CUSTO TOTAL para evitar sobreposição
+            ctx.font = 'bold 16px Inter'; 
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'left';
+            ctx.fillText('CUSTO TOTAL DO SERVIÇO (C):', textX, currentY);
+            ctx.textAlign = 'right';
+            ctx.fillText(formatCurrency(state.results.custoTotal), valueX, currentY);
+            currentY += lineSpacing;
+
+
+            // --- SEÇÃO MARGEM / LUCRO ---
+            currentY += 20;
+            ctx.font = 'bold 18px Inter';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'left';
+            ctx.fillText('Margem e Preço Final', textX, currentY);
+            currentY += 30;
+
+            // Linha: Margem Aplicada
+            ctx.font = '16px Inter';
+            ctx.fillStyle = '#555';
+            ctx.textAlign = 'left';
+            // Usa toFixed(0) para a margem se for número inteiro, ou toFixed(2) se for decimal
+            const margemDisplay = (state.inputs.margemLucro.value % 1 === 0) ? 
+                                  state.inputs.margemLucro.value.toFixed(0) : 
+                                  state.inputs.margemLucro.value.toFixed(2);
+                                  
+            ctx.fillText(`Margem de Lucro Aplicada (${margemDisplay}%):`, textX, currentY);
+            ctx.textAlign = 'right';
+            ctx.fillText(formatCurrency(state.results.valorMargem), valueX, currentY);
+            currentY += lineSpacing;
+
+
+            // --- PREÇO FINAL (DESTAQUE) ---
+            currentY += 20;
+            ctx.strokeStyle = '#28a745';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(padding, currentY);
+            ctx.lineTo(canvasWidth - padding, currentY);
+            ctx.stroke();
+            currentY += 30;
+
+            // Título do Preço Final
+            ctx.font = 'bold 24px Inter'; 
+            ctx.fillStyle = '#28a745'; // Verde para o preço final
+            ctx.textAlign = 'center'; // Alinha o texto ao centro do canvas
+            ctx.fillText('PREÇO FINAL SUGERIDO:', canvasWidth / 2, currentY);
+            currentY += lineSpacing;
+            
+            // Valor do Preço Final
+            ctx.font = 'bold 32px Inter'; // Fonte maior para destaque
+            ctx.fillStyle = '#28a745'; // Mantém o verde
+            ctx.textAlign = 'center'; // Mantém o alinhamento central
+            ctx.fillText(formatCurrency(state.results.precoFinal), canvasWidth / 2, currentY);
+            currentY += lineSpacing + 20; // Espaçamento maior após o destaque
+            
+            // --- DETALHES DE MATERIAIS ---
+            currentY += 40;
+            ctx.font = 'bold 14px Inter';
+            ctx.fillStyle = '#888';
+            ctx.textAlign = 'left';
+            ctx.fillText('DETALHE DOS CUSTOS DE MATERIAIS:', textX, currentY);
+            currentY += 25;
+
+            ctx.font = '14px Inter';
+            Object.keys(state.inputs).forEach(key => {
+                if (['qtdBarras', 'qtdTinta', 'qtdEletrodos'].includes(key)) {
+                    const input = state.inputs[key];
+                    const lineTotal = input.value * input.unitPrice;
+                    
+                    // Converte a quantidade para string sem decimais se for um número inteiro, senão usa 2 casas
+                    const qtdDisplay = (input.value % 1 === 0) ? input.value.toFixed(0) : input.value.toFixed(2);
+                    const totalText = `${qtdDisplay} x ${formatCurrency(input.unitPrice)} = ${formatCurrency(lineTotal)}`;
+                    
+                    ctx.fillStyle = '#888';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`${input.label}:`, textX + 10, currentY);
+                    
+                    ctx.textAlign = 'right';
+                    ctx.fillText(totalText, valueX, currentY);
+                    currentY += 25;
+                }
+            });
+        }
+        
+        // Função auxiliar para calcular o custo material para exibição detalhada
+        function calculateMaterialCost() {
+             const getNum = (key) => state.inputs[key].value || 0;
+             return {
+                custoBarras: getNum('qtdBarras') * state.inputs.qtdBarras.unitPrice,
+                custoTinta: getNum('qtdTinta') * state.inputs.qtdTinta.unitPrice,
+                custoEletrodos: getNum('qtdEletrodos') * state.inputs.qtdEletrodos.unitPrice
+             };
+        }
+
+
+        // --- FLUXO PRINCIPAL ---
+
+        /**
+         * Inicializa o aplicativo.
+         */
+        function init() {
+            renderInputsToDOM();
+            calculateCosts(); // Calcula custos iniciais
+            renderUI();       // Renderiza a página correta
+        }
+
+        /**
+         * Atualiza o estado (cálculos) e redesenha o Canvas.
+         */
+        function updateApp() {
+            calculateCosts();
+            draw();
+        }
+        
+        // Adiciona listener para redimensionamento da janela para garantir a responsividade do Canvas
+        window.addEventListener('resize', () => {
+             if (state.currentPage === 'results') {
+                updateApp();
+             }
+        });
+
+        // --- CHAMADA DE INICIALIZAÇÃO ---
+        window.onload = init;
+        
+    </script>
 
 </body>
 </html>
+
