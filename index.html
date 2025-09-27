@@ -166,4 +166,146 @@
             ctx.beginPath();
             ctx.moveTo(padding, currentY);
             ctx.lineTo(canvas.width - padding, currentY);
-            ctx.strokeStyle =
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            currentY += padding + 10;
+            
+            // --- TÍTULO SEÇÃO DE RESULTADOS ---
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'left';
+            ctx.fillText('Resultado do Orçamento', padding, currentY);
+            currentY += lineSpacing;
+
+            // --- DESENHA RESULTADOS ---
+            const resultsLayout = [
+                { label: 'Custo Total de Materiais', value: formatCurrency(state.results.custoMateriais) },
+                { label: 'Custo Total da Mão de Obra', value: formatCurrency(state.results.custoMaoObra) },
+                { label: 'Custo Total do Serviço', value: formatCurrency(state.results.custoTotal), bold: true },
+                { label: `Margem Aplicada (${state.inputs.margemLucro.value || 0}%)`, value: formatCurrency(state.results.valorMargem) },
+                { label: 'Preço Final Sugerido', value: formatCurrency(state.results.precoFinal), final: true },
+            ];
+            
+            resultsLayout.forEach(item => {
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#555';
+                ctx.font = item.bold ? 'bold 16px Arial' : '16px Arial';
+                ctx.fillText(item.label, padding, currentY);
+
+                ctx.textAlign = 'right';
+                if (item.final) {
+                    ctx.font = 'bold 22px Arial';
+                    ctx.fillStyle = '#28a745'; // Verde para o preço final
+                } else if (item.bold) {
+                    ctx.fillStyle = '#333';
+                }
+                ctx.fillText(item.value, canvas.width - padding, currentY);
+
+                currentY += 40;
+            });
+        }
+
+        // --- FUNÇÕES DE CONTROLE DE INPUT AUXILIAR (MOBILE) ---
+
+        function activateAuxiliaryInput(key) {
+            if (!key) return;
+
+            // 1. Sincroniza o valor do estado para o input real
+            auxiliaryInput.value = state.inputs[key].value;
+            auxiliaryInput.type = 'number'; // Sugere teclado numérico no celular
+            auxiliaryInput.style.pointerEvents = 'auto'; 
+            
+            // 2. Tenta focar no input real para abrir o teclado virtual
+            setTimeout(() => {
+                auxiliaryInput.focus();
+            }, 10);
+        }
+
+        function deactivateAuxiliaryInput() {
+            auxiliaryInput.blur();
+            auxiliaryInput.style.pointerEvents = 'none'; // Desativa o input
+            state.activeInput = null;
+            draw();
+        }
+
+        // --- EVENT LISTENERS (CLIQUE E TOQUE) ---
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            // Ajusta as coordenadas x e y para a escala do canvas, importante para responsividade
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+
+            let clickedOnInput = false;
+            Object.keys(state.layout).forEach(key => {
+                const box = state.layout[key];
+                if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
+                    state.activeInput = key;
+                    clickedOnInput = true;
+                    activateAuxiliaryInput(key); // Ativa o input auxiliar
+                }
+            });
+
+            if (!clickedOnInput) {
+                deactivateAuxiliaryInput(); // Desativa se clicar fora
+            }
+
+            draw(); // Redesenha para mostrar a seleção
+        });
+
+        // O input auxiliar captura todas as mudanças de valor no mobile/desktop
+        auxiliaryInput.addEventListener('input', () => {
+            if (!state.activeInput) return;
+
+            let value = auxiliaryInput.value;
+            
+            // Garante que só números e um ponto decimal sejam inseridos
+            value = value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+            
+            state.inputs[state.activeInput].value = value;
+
+            calculateCosts();
+            draw();
+        });
+        
+        // Desfoca o input auxiliar quando o usuário pressiona "Enter" ou similar no teclado virtual
+        auxiliaryInput.addEventListener('change', deactivateAuxiliaryInput);
+
+        // --- EVENT LISTENER (TECLADO FÍSICO/DESKTOP) ---
+        // Mantém a lógica de teclado direto para uma experiência melhor no desktop
+        window.addEventListener('keydown', (event) => {
+            if (!state.activeInput) return;
+
+            const key = event.key;
+            const input = state.inputs[state.activeInput];
+
+            // Bloqueia a ação padrão para evitar que o input auxiliar reaja se estiver ativo
+            event.preventDefault(); 
+            
+            if (key === 'Backspace') {
+                input.value = input.value.slice(0, -1);
+                auxiliaryInput.value = input.value; // Sincroniza o input auxiliar
+            } else if (!isNaN(key) || (key === '.' && !input.value.includes('.'))) {
+                // Permite números e um único ponto decimal
+                input.value += key;
+                auxiliaryInput.value = input.value; // Sincroniza o input auxiliar
+            } else if (key === 'Enter') {
+                 // Desativa o foco se a tecla Enter for pressionada
+                deactivateAuxiliaryInput(); 
+                return; 
+            }
+
+            calculateCosts();
+            draw();
+        });
+
+        // --- INICIALIZAÇÃO ---
+        calculateCosts();
+        draw();
+
+    </script>
+
+</body>
+</html>
