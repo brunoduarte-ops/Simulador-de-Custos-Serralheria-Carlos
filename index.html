@@ -22,7 +22,7 @@
 
     <div class="w-full max-w-4xl">
         <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">
-            Orçamentador Inteligente
+            Simulador Serralheria
         </h1>
         
         <!-- PÁGINA 1: ENTRADA DE DADOS -->
@@ -276,7 +276,8 @@
             const textX = padding;
             const valueX = canvasWidth - padding;
             let currentY = padding;
-            const lineSpacing = 40;
+            // Ajuste a separação da linha para acomodar melhor em telas pequenas
+            const lineSpacing = canvasWidth > 400 ? 40 : 35; 
 
             // Cabeçalho / Título do Recibo
             ctx.font = 'bold 24px Inter';
@@ -318,10 +319,11 @@
             currentY += lineSpacing;
 
             // Linha: Custo Total
-            ctx.font = 'bold 18px Inter';
+            // Reduzindo o tamanho da fonte para o CUSTO TOTAL para evitar sobreposição
+            ctx.font = 'bold 16px Inter'; 
             ctx.fillStyle = '#000';
             ctx.textAlign = 'left';
-            ctx.fillText('CUSTO TOTAL DO SERVIÇO (C)', textX, currentY);
+            ctx.fillText('CUSTO TOTAL DO SERVIÇO (C):', textX, currentY);
             ctx.textAlign = 'right';
             ctx.fillText(formatCurrency(state.results.custoTotal), valueX, currentY);
             currentY += lineSpacing;
@@ -360,10 +362,11 @@
             ctx.stroke();
             currentY += 30;
 
-            ctx.font = 'bold 28px Inter';
+            // Reduzindo o tamanho da fonte para o PREÇO FINAL para evitar sobreposição
+            ctx.font = 'bold 24px Inter'; 
             ctx.fillStyle = '#28a745'; // Verde para o preço final
             ctx.textAlign = 'left';
-            ctx.fillText('PREÇO FINAL SUGERIDO', textX, currentY);
+            ctx.fillText('PREÇO FINAL SUGERIDO:', textX, currentY);
             
             ctx.textAlign = 'right';
             ctx.fillText(formatCurrency(state.results.precoFinal), valueX, currentY);
