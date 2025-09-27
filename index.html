@@ -116,9 +116,9 @@
             results: {
                 custoMateriais: 0,
                 custoMaoObra: 0,
-                custoTotal: 0,
+                custoTotal: 0, // Custo base (Materiais + M.O. Custo)
                 valorMargem: 0,
-                precoFinal: 0
+                precoFinal: 0 // Preço de venda (Custo Total + Margem)
             },
             currentPage: 'inputs' // Novo: Controla a página atual ('inputs' ou 'results')
         };
@@ -187,7 +187,6 @@
                 unitLabel = 'Qtd.';
             }
 
-            // A descrição do preço unitário foi removida na etapa anterior
             const unitPriceDisplay = ''; 
             
             // Classes para alinhamento e espaçamento
@@ -272,26 +271,31 @@
             const custoTinta = getNum('qtdTinta') * state.inputs.qtdTinta.unitPrice;
             const custoEletrodos = getNum('qtdEletrodos') * state.inputs.qtdEletrodos.unitPrice;
             
-            const custoMaoObra = getNum('horasTrabalho') * getNum('valorHora');
+            const custoMaoObraBase = getNum('horasTrabalho') * getNum('valorHora');
             const custoMateriais = custoBarras + custoTinta + custoEletrodos;
             
-            const custoTotal = custoMateriais + custoMaoObra;
+            // Custo Total (Base de custo antes da margem)
+            const custoTotal = custoMateriais + custoMaoObraBase;
             
             // Margem de lucro: (Custo Total * Margem %)
             const margem = getNum('margemLucro') / 100;
             const valorMargem = custoTotal * margem;
+            
+            // Preço Final de Venda
             const precoFinal = custoTotal + valorMargem;
 
             state.results = {
                 custoMateriais: custoMateriais,
-                custoMaoObra: custoMaoObra,
+                custoMaoObra: custoMaoObraBase, // Mantém o custo base
                 custoTotal: custoTotal,
                 valorMargem: valorMargem,
                 precoFinal: precoFinal
             };
         }
         
-        // Função auxiliar para calcular o custo material para exibição detalhada
+        /**
+         * Função auxiliar para calcular o custo material para exibição detalhada
+         */
         function calculateMaterialCost() {
             const getNum = (key) => state.inputs[key].value || 0;
             return {
@@ -333,7 +337,8 @@
                 }
             }
             context.fillText(line, x, currentY);
-            return currentY + lineHeight;
+            // Retorna o Y da última linha desenhada + um pequeno espaçamento para o próximo elemento
+            return currentY + lineHeight / 2;
         }
 
 
@@ -351,6 +356,14 @@
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // --- CÁLCULOS DE EXIBIÇÃO ---
+            // O Preço Final é o valor total de venda.
+            const precoFinalVenda = state.results.precoFinal;
+            // Para esconder o lucro, faremos o custo de Mão de Obra na tela ser igual ao
+            // (Preço Final de Venda - Custo Total de Materiais).
+            const precoMaoObraEFinalLucro = precoFinalVenda - state.results.custoMateriais;
+
 
             // --- ESTILOS E LAYOUT ---
             const padding = Math.max(20, canvasWidth * 0.04); 
@@ -372,12 +385,12 @@
             ctx.textAlign = 'left';
 
             const titleText = 'Orçamento de Serviços de Serralheria';
-            const titleLineHeight = 30; // Altura da linha para o título
+            const titleLineHeight = 30; 
 
             // Quebra de linha dinâmica para o título
             const nextYAfterTitle = wrapText(ctx, titleText, textX, currentY, canvasWidth - 2 * padding, titleLineHeight);
             currentY = nextYAfterTitle; 
-            currentY += 5; // Pequeno ajuste após o título
+            currentY += 5; 
 
             // Linha de separação
             ctx.strokeStyle = '#9ca3af'; // Cinza
@@ -388,14 +401,22 @@
             ctx.stroke();
             currentY += 20; 
 
-            // --- SEÇÃO 1: CUSTOS BASE ---
+            // --- SEÇÃO 1: CUSTOS BASE (Materiais e Mão de Obra + Lucro) ---
 
             // Título Custos Base
             ctx.font = 'bold 16px Inter'; 
             ctx.fillStyle = '#333333';
-            ctx.fillText('1. Custos Base (Custo Material + Mão de Obra)', textX, currentY);
-            currentY += 30; 
-
+            ctx.fillText('1. Itens e Serviços', textX, currentY);
+            currentY += 15; // Quebra de linha para o disclaimer
+            
+            // Disclaimer na linha de baixo, alinhado com a esquerda
+            ctx.font = '12px Inter'; 
+            ctx.fillStyle = '#6b7280'; // Cinza
+            // O disclaimer foi alterado para ser mais conciso
+            ctx.fillText('(Materiais e Custo do Serviço)', textX + 5, currentY); 
+            
+            currentY += 25; // Espaço após o disclaimer
+            
             // --- Linha: Custo de Materiais ---
             ctx.font = '14px Inter'; 
             ctx.fillStyle = '#555';
@@ -407,62 +428,21 @@
             ctx.fillText(formatCurrency(state.results.custoMateriais), textX + 20, currentY);
             currentY += lineSpacing; 
 
-            // --- Linha: Custo de Mão de Obra ---
+            // --- Linha: Custo de Mão de Obra E LUCRO ---
             ctx.font = '14px Inter'; 
             ctx.fillStyle = '#555';
-            ctx.fillText('Custo Total da Mão de Obra:', textX + 10, currentY);
+            // O rótulo foi ajustado para incluir o lucro implicitamente
+            ctx.fillText('Serviços e Mão de Obra (Valor Final):', textX + 10, currentY);
             currentY += valueLineSpacing; 
 
             ctx.font = 'bold 16px Inter'; 
             ctx.fillStyle = '#000';
-            ctx.fillText(formatCurrency(state.results.custoMaoObra), textX + 20, currentY);
-            currentY += lineSpacing; 
+            // Usa o valor que inclui o lucro (Total Venda - Materiais)
+            ctx.fillText(formatCurrency(precoMaoObraEFinalLucro), textX + 20, currentY);
+            currentY += lineSpacing * 1.5; 
 
 
-            // --- Linha Custo Total (Soma) ---
-            ctx.strokeStyle = '#000';
-            ctx.beginPath();
-            ctx.moveTo(textX, currentY - lineSpacing + valueLineSpacing/2);
-            ctx.lineTo(valueX, currentY - lineSpacing + valueLineSpacing/2);
-            ctx.stroke();
-
-            ctx.font = 'bold 18px Inter'; 
-            ctx.fillStyle = '#1e40af';
-            ctx.fillText('CUSTO TOTAL DO SERVIÇO (C):', textX, currentY);
-            currentY += valueLineSpacing + 3; 
-
-            ctx.font = 'bold 20px Inter'; 
-            ctx.fillStyle = '#1e40af';
-            ctx.fillText(formatCurrency(state.results.custoTotal), textX + 20, currentY);
-            currentY += lineSpacing; 
-
-
-            // --- SEÇÃO 2: MARGEM / LUCRO ---
-            
-            // Título Margem
-            ctx.font = 'bold 16px Inter'; 
-            ctx.fillStyle = '#333';
-            ctx.textAlign = 'left';
-            ctx.fillText('2. Margem de Lucro', textX, currentY);
-            currentY += 30; 
-
-            // --- Linha: Margem Aplicada ---
-            ctx.font = '14px Inter'; 
-            ctx.fillStyle = '#ca8a04'; 
-            
-            const margemValue = state.inputs.margemLucro.value;
-            const margemDisplay = (margemValue % 1 === 0) ? margemValue.toFixed(0) : margemValue.toFixed(2);
-                            
-            ctx.fillText(`Margem de Lucro Aplicada (${margemDisplay}% de C):`, textX + 10, currentY);
-            currentY += valueLineSpacing; 
-            
-            ctx.font = 'bold 16px Inter'; 
-            ctx.fillStyle = '#ca8a04';
-            ctx.fillText(formatCurrency(state.results.valorMargem), textX + 20, currentY);
-            currentY += lineSpacing * 1.5;
-
-
-            // --- PREÇO FINAL (DESTAQUE) ---
+            // --- PREÇO FINAL (DESTAQUE VERDE) - NOVO ITEM 2 ---
             
             // Fundo verde para destaque
             ctx.fillStyle = '#dcfce7'; // Verde bem claro
@@ -475,15 +455,16 @@
             ctx.lineTo(canvasWidth - padding, currentY - lineSpacing * 0.8);
             ctx.stroke();
 
-            // Preço Final
+            // Título do Preço Final (Substitui o antigo Custo Total)
             ctx.font = 'bold 18px Inter'; 
             ctx.fillStyle = '#059669'; // Verde mais escuro para contraste
-            ctx.fillText('PREÇO FINAL SUGERIDO:', textX, currentY);
+            ctx.fillText('2. PREÇO FINAL SUGERIDO:', textX, currentY);
             currentY += valueLineSpacing + 5; 
 
+            // Valor do Preço Final
             ctx.font = 'bold 28px Inter'; 
             ctx.fillStyle = '#059669';
-            ctx.fillText(formatCurrency(state.results.precoFinal), textX + 20, currentY);
+            ctx.fillText(formatCurrency(precoFinalVenda), textX + 20, currentY);
 
             ctx.beginPath();
             ctx.moveTo(padding, currentY + lineSpacing * 0.5);
@@ -491,7 +472,8 @@
             ctx.stroke();
 
             currentY += lineSpacing * 1.5;
-            
+
+
             // --- SEÇÃO 3: DETALHES DE MATERIAIS ---
             currentY += 10;
             ctx.font = 'bold 13px Inter'; 
@@ -542,7 +524,10 @@
                     ctx.font = '12px Inter'; // Reseta a fonte para a label
                 }
             });
-            currentY = materialDetailY + 10;
+            currentY = materialDetailY + 20;
+
+            // REMOÇÃO DA SEÇÃO 4: MARGEM / LUCRO - A seção foi removida para não explicitar a margem.
+            
         }
         
         // Função auxiliar para calcular o custo material para exibição detalhada
